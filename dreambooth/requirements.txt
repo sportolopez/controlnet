@@ -1,0 +1,16 @@
+accelerate>=0.16.0
+torchvision
+transformers>=4.25.1
+ftfy
+tensorboard
+Jinja2
+
+tqdm~=4.66.1
+numpy~=1.25.2
+packaging~=23.1
+requests~=2.31.0
+Pillow~=10.0.0
+safetensors~=0.3.3
+diffusers~=0.21.0.dev0
+PyYAML~=6.0.1
+setuptools~=65.5.1
