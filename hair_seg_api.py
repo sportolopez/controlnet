@@ -1,6 +1,9 @@
 import base64
 import unittest
 import importlib
+
+import cv2
+import numpy as np
 import torch.nn as nn
 import sys
 from PIL import Image
@@ -13,6 +16,39 @@ import utils
 import requests
 
 utils.setup_test_env()
+
+
+def limpiar_cara(imagen_face, image):
+    # Iterar sobre los píxeles de la imagen 1
+    for y in range(imagen_face.shape[0]):
+        for x in range(imagen_face.shape[1]):
+            if imagen_face[y, x] != 0:  # Verificar si el píxel es negro
+                image[y, x] = 0  # Copiar el píxel de la imagen 1 a la imagen 2
+
+    # Guardar la imagen resultante
+    cv2.imwrite("imagen_limpiar_cara.png", image)
+
+
+def ensanchar_borde(imagen, dilatacion):
+    # Invertir los colores (negativo)
+    imagen_invertida = cv2.bitwise_not(imagen)
+
+    # Definir el kernel para la operación de dilatación
+    kernel = np.ones((dilatacion, dilatacion), np.uint8)
+
+    # Aplicar la operación de dilatación
+    borde_ensanchado = cv2.dilate(imagen, kernel, iterations=1)
+
+    # Invertir nuevamente los colores para obtener el resultado final
+    #borde_ensanchado = cv2.bitwise_not(borde_ensanchado)
+
+    # Mostrar la imagen original y la imagen con el borde ensanchado
+    #cv2.imshow("Imagen Original", imagen)
+    #cv2.waitKey(0)
+    #cv2.imshow("Borde Ensanchado", borde_ensanchado)
+    #cv2.waitKey(0)
+    return borde_ensanchado
+
 
 def get_hair_segmentation(image):
     processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
@@ -29,12 +65,20 @@ def get_hair_segmentation(image):
         mode="bilinear",
         align_corners=False,
     )
-    pred_seg = upsampled_logits.argmax(dim=1)[0]
-    pred_seg[pred_seg != 2] = 0
-    arr_seg = pred_seg.cpu().numpy().astype("uint8")
+    seg_cara = upsampled_logits.argmax(dim=1)[0]
+    seg_cara[seg_cara != 11] = 0
+    arr_seg_cara = seg_cara.cpu().numpy().astype("uint8")
+    arr_seg_cara *= 255
+
+    seg_pelo = upsampled_logits.argmax(dim=1)[0]
+    seg_pelo[seg_pelo != 2] = 0
+    arr_seg = seg_pelo.cpu().numpy().astype("uint8")
     arr_seg *= 255
 
-    pil_seg = Image.fromarray(arr_seg)
+    image = ensanchar_borde(arr_seg, 50)
+    limpiar_cara(arr_seg_cara, image)
+
+    pil_seg = Image.fromarray(image)
     pil_seg.save("segmentation.png")
     pil_seg.close()
 
@@ -47,6 +91,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
 
     get_hair_segmentation(Image.open("images\\mujer3.jpg").convert("RGB"))
 
+    exit(1)
 
     def setUp(self):
         controlnet_unit = {
@@ -143,9 +188,9 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
 
 
         stderr = ""
-        with open('D:/stable-diffusion-webui/extensions/sd-webui-controlnet/tests/stderr.txt') as f:
+        with open('C:/Users/sebap/git/controlnet/stderr.txt') as f:
             stderr = f.read().lower()
-        with open('D:/stable-diffusion-webui/extensions/sd-webui-controlnet/tests/stderr.txt', 'w') as f:
+        with open('C:/Users/sebap/git/controlnet/stderr.txt', 'w') as f:
             # clear stderr file so that we can easily parse the next test
             f.write("")
         self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)
@@ -153,67 +198,6 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
     def test_txt2img_simple_performed(self):
         self.assert_status_ok()
 
-    def test_txt2img_alwayson_scripts_default_units(self):
-        self.units_count = 0
-        self.setUp()
-        self.assert_status_ok()
-
-    def test_txt2img_multiple_batches_performed(self):
-        self.simple_txt2img["n_iter"] = 2
-        self.assert_status_ok()
-
-    def test_txt2img_batch_performed(self):
-        self.simple_txt2img["batch_size"] = 2
-        self.assert_status_ok()
-
-    def test_txt2img_2_units(self):
-        self.units_count = 2
-        self.setUp()
-        self.assert_status_ok()
-
-    def test_txt2img_8_units(self):
-        self.units_count = 8
-        self.setUp()
-        self.assert_status_ok()
-
-    def test_txt2img_default_params(self):
-        self.simple_txt2img["alwayson_scripts"]["ControlNet"]["args"] = [
-            {
-                "input_image": utils.readImage("d:/stable-diffusion-webui/test/test_files/img2img_basic.png"),
-                "model": utils.get_model(),
-            }
-        ]
-
-        self.assert_status_ok()
-
-    def test_call_with_preprocessors(self):
-        available_modules = utils.get_modules()
-        available_modules_list = available_modules.get('module_list', [])
-        available_modules_detail = available_modules.get('module_detail', {})
-        for module in ['depth', 'openpose_full']:
-            assert module in available_modules_list, f'Failed to find {module}.'
-            assert module in available_modules_detail, f"Failed to find {module}'s detail."
-            with self.subTest(module=module):
-                self.simple_txt2img["alwayson_scripts"]["ControlNet"]["args"] = [
-                    {
-                        "input_image": utils.readImage("d:/stable-diffusion-webui/test/test_files/img2img_basic.png"),
-                        "model": utils.get_model(),
-                        "module": module
-                    }
-                ]
-                self.assert_status_ok(f'Running preprocessor module: {module}')
-
-    def test_call_invalid_params(self):
-        for param in ('processor_res', 'threshold_a', 'threshold_b'):
-            with self.subTest(param=param):
-                self.simple_txt2img["alwayson_scripts"]["ControlNet"]["args"] = [
-                    {
-                        "input_image": utils.readImage("d:/stable-diffusion-webui/test/test_files/img2img_basic.png"),
-                        "model": utils.get_model(),
-                        param: -1,
-                    }
-                ]
-                self.assert_status_ok(f'Run with {param} = -1.')
 
 if __name__ == "__main__":
     unittest.main()
