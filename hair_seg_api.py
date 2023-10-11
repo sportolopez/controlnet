@@ -83,47 +83,37 @@ def get_hair_segmentation(ruta_completa):
 
     pil_seg = Image.fromarray(image)
 
-    sufijo = "_segm"
-
-    carpeta, nombre_archivo = os.path.split(ruta_completa)
-    nombre_base, extension = os.path.splitext(nombre_archivo)
-
-    nuevo_nombre = f"{nombre_base}{sufijo}{extension}"
-
-    nueva_ruta_completa = os.path.join(carpeta, nuevo_nombre)
-
-    print(nueva_ruta_completa)
+    nueva_ruta_completa = add_sufix_filename(ruta_completa, "_segm")
 
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
 
+    return nueva_ruta_completa
+
+
+def add_sufix_filename(ruta_completa, sufijo):
+    carpeta, nombre_archivo = os.path.split(ruta_completa)
+    nombre_base, extension = os.path.splitext(nombre_archivo)
+    nuevo_nombre = f"{nombre_base}{sufijo}{extension}"
+    nueva_ruta_completa = os.path.join(carpeta, nuevo_nombre)
+    return nueva_ruta_completa
 
 
 # get_hair_segmentation(Image.open("mujer1.PNG").convert("RGB"))
 
 
 class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
-    archivos = os.listdir(PATH)
-    archivos = [archivo for archivo in archivos if os.path.isfile(os.path.join(PATH, archivo))]
-    archivos = [archivo for archivo in archivos if "_segm" not in archivo]
+    url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
+    simple_txt2img = {}
 
-    # Imprime la lista de archivos
-    for archivo in archivos:
-        ruta_completa = os.path.join(PATH, archivo)
-        get_hair_segmentation(ruta_completa)
-        print(ruta_completa)
-
-
-    exit(1)
-
-    def setUp(self):
+    def setUpControlnet(self, image_path, seg_path):
         controlnet_unit = {
             "enabled": True,
             "module": "inpaint_only",
             "model": "control_v11p_sd15_inpaint [ebff9138]",
             "weight": 1.0,
-            "image": utils.readImage("images\\mujer3.jpg"),
-            "mask":  utils.readImage("segmentation.png"),
+            "image": utils.readImage(image_path),
+            "mask":  utils.readImage(seg_path),
             "resize_mode": 1,
             "lowvram": False,
             "processor_res": 512,
@@ -200,14 +190,27 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
 
     def assert_status_ok(self, msg=None):
         print(self.simple_txt2img)
-        response = requests.post(self.url_txt2img, json=self.simple_txt2img)
-        self.assertEqual(response.status_code, 200, msg)
-        #print(response.json()['images'])
-        for index,aImage in enumerate(response.json()['images']):
-            decoded_data = base64.b64decode(aImage)
-            img_file = open('image_'+str(index)+'.png', 'wb')
-            img_file.write(decoded_data)
-            img_file.close()
+
+        archivos = os.listdir(PATH)
+        archivos = [archivo for archivo in archivos if os.path.isfile(os.path.join(PATH, archivo))]
+        archivos = [archivo for archivo in archivos if "_segm" not in archivo]
+
+        # Imprime la lista de archivos
+        for archivo in archivos:
+            ruta_completa = os.path.join(PATH, archivo)
+            nueva_ruta_completa = get_hair_segmentation(ruta_completa)
+            self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
+            response = requests.post(self.url_txt2img, json=self.simple_txt2img)
+            self.assertEqual(response.status_code, 200, msg)
+            for index,aImage in enumerate(response.json()['images']):
+                decoded_data = base64.b64decode(aImage)
+                img_file = open(add_sufix_filename(ruta_completa, "gen"), 'wb')
+                img_file.write(decoded_data)
+                img_file.close()
+
+
+
+
 
 
         stderr = ""
