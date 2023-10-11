@@ -15,6 +15,8 @@ from base64 import b64encode
 import utils
 import requests
 
+PATH = "images"
+
 utils.setup_test_env()
 
 
@@ -50,7 +52,8 @@ def ensanchar_borde(imagen, dilatacion):
     return borde_ensanchado
 
 
-def get_hair_segmentation(image):
+def get_hair_segmentation(ruta_completa):
+    image = Image.open(ruta_completa).convert("RGB")
     processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
     model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
 
@@ -79,7 +82,19 @@ def get_hair_segmentation(image):
     limpiar_cara(arr_seg_cara, image)
 
     pil_seg = Image.fromarray(image)
-    pil_seg.save("segmentation.png")
+
+    sufijo = "_segm"
+
+    carpeta, nombre_archivo = os.path.split(ruta_completa)
+    nombre_base, extension = os.path.splitext(nombre_archivo)
+
+    nuevo_nombre = f"{nombre_base}{sufijo}{extension}"
+
+    nueva_ruta_completa = os.path.join(carpeta, nuevo_nombre)
+
+    print(nueva_ruta_completa)
+
+    pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
 
 
@@ -88,10 +103,15 @@ def get_hair_segmentation(image):
 
 
 class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
+    archivos = os.listdir(PATH)
+    archivos = [archivo for archivo in archivos if os.path.isfile(os.path.join(PATH, archivo))]
 
-    get_hair_segmentation(Image.open("images\\mujer3.jpg").convert("RGB"))
+    # Imprime la lista de archivos
+    for archivo in archivos:
+        ruta_completa = os.path.join(PATH, archivo)
+        get_hair_segmentation(ruta_completa)
+        print(ruta_completa)
 
-    exit(1)
 
     def setUp(self):
         controlnet_unit = {
