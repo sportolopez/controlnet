@@ -1,6 +1,9 @@
 import base64
 import unittest
 import importlib
+
+import cv2
+import numpy as np
 import torch.nn as nn
 import sys
 from PIL import Image
@@ -12,9 +15,45 @@ from base64 import b64encode
 import utils
 import requests
 
+PATH = "images"
+
 utils.setup_test_env()
 
-def get_hair_segmentation(image):
+
+def limpiar_cara(imagen_face, image):
+    # Iterar sobre los píxeles de la imagen 1
+    for y in range(imagen_face.shape[0]):
+        for x in range(imagen_face.shape[1]):
+            if imagen_face[y, x] != 0:  # Verificar si el píxel es negro
+                image[y, x] = 0  # Copiar el píxel de la imagen 1 a la imagen 2
+
+    # Guardar la imagen resultante
+    cv2.imwrite("imagen_limpiar_cara.png", image)
+
+
+def ensanchar_borde(imagen, dilatacion):
+    # Invertir los colores (negativo)
+    imagen_invertida = cv2.bitwise_not(imagen)
+
+    # Definir el kernel para la operación de dilatación
+    kernel = np.ones((dilatacion, dilatacion), np.uint8)
+
+    # Aplicar la operación de dilatación
+    borde_ensanchado = cv2.dilate(imagen, kernel, iterations=1)
+
+    # Invertir nuevamente los colores para obtener el resultado final
+    #borde_ensanchado = cv2.bitwise_not(borde_ensanchado)
+
+    # Mostrar la imagen original y la imagen con el borde ensanchado
+    #cv2.imshow("Imagen Original", imagen)
+    #cv2.waitKey(0)
+    #cv2.imshow("Borde Ensanchado", borde_ensanchado)
+    #cv2.waitKey(0)
+    return borde_ensanchado
+
+
+def get_hair_segmentation(ruta_completa):
+    image = Image.open(ruta_completa).convert("RGB")
     processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
     model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
 
@@ -29,33 +68,52 @@ def get_hair_segmentation(image):
         mode="bilinear",
         align_corners=False,
     )
-    pred_seg = upsampled_logits.argmax(dim=1)[0]
-    pred_seg[pred_seg != 2] = 0
-    arr_seg = pred_seg.cpu().numpy().astype("uint8")
+    seg_cara = upsampled_logits.argmax(dim=1)[0]
+    seg_cara[seg_cara != 11] = 0
+    arr_seg_cara = seg_cara.cpu().numpy().astype("uint8")
+    arr_seg_cara *= 255
+
+    seg_pelo = upsampled_logits.argmax(dim=1)[0]
+    seg_pelo[seg_pelo != 2] = 0
+    arr_seg = seg_pelo.cpu().numpy().astype("uint8")
     arr_seg *= 255
 
-    pil_seg = Image.fromarray(arr_seg)
-    pil_seg.save("segmentation.png")
+    image = ensanchar_borde(arr_seg, 50)
+    limpiar_cara(arr_seg_cara, image)
+
+    pil_seg = Image.fromarray(image)
+
+    nueva_ruta_completa = add_sufix_filename(ruta_completa, "_segm")
+
+    pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
 
+    return nueva_ruta_completa
+
+
+def add_sufix_filename(ruta_completa, sufijo):
+    carpeta, nombre_archivo = os.path.split(ruta_completa)
+    nombre_base, extension = os.path.splitext(nombre_archivo)
+    nuevo_nombre = f"{nombre_base}{sufijo}{extension}"
+    nueva_ruta_completa = os.path.join(carpeta, nuevo_nombre)
+    return nueva_ruta_completa
 
 
 # get_hair_segmentation(Image.open("mujer1.PNG").convert("RGB"))
 
 
 class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
+    url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
+    simple_txt2img = {}
 
-    get_hair_segmentation(Image.open("images\\mujer3.jpg").convert("RGB"))
-
-
-    def setUp(self):
+    def setUpControlnet(self, image_path, seg_path):
         controlnet_unit = {
             "enabled": True,
             "module": "inpaint_only",
             "model": "control_v11p_sd15_inpaint [ebff9138]",
             "weight": 1.0,
-            "image": utils.readImage("images\\mujer3.jpg"),
-            "mask":  utils.readImage("segmentation.png"),
+            "image": utils.readImage(image_path),
+            "mask":  utils.readImage(seg_path),
             "resize_mode": 1,
             "lowvram": False,
             "processor_res": 512,
@@ -132,20 +190,33 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
 
     def assert_status_ok(self, msg=None):
         print(self.simple_txt2img)
-        response = requests.post(self.url_txt2img, json=self.simple_txt2img)
-        self.assertEqual(response.status_code, 200, msg)
-        #print(response.json()['images'])
-        for index,aImage in enumerate(response.json()['images']):
-            decoded_data = base64.b64decode(aImage)
-            img_file = open('image_'+str(index)+'.png', 'wb')
-            img_file.write(decoded_data)
-            img_file.close()
+
+        archivos = os.listdir(PATH)
+        archivos = [archivo for archivo in archivos if os.path.isfile(os.path.join(PATH, archivo))]
+        archivos = [archivo for archivo in archivos if "_segm" not in archivo]
+
+        # Imprime la lista de archivos
+        for archivo in archivos:
+            ruta_completa = os.path.join(PATH, archivo)
+            nueva_ruta_completa = get_hair_segmentation(ruta_completa)
+            self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
+            response = requests.post(self.url_txt2img, json=self.simple_txt2img)
+            self.assertEqual(response.status_code, 200, msg)
+            for index,aImage in enumerate(response.json()['images']):
+                decoded_data = base64.b64decode(aImage)
+                img_file = open(add_sufix_filename(ruta_completa, "gen"), 'wb')
+                img_file.write(decoded_data)
+                img_file.close()
+
+
+
+
 
 
         stderr = ""
-        with open('D:/stable-diffusion-webui/extensions/sd-webui-controlnet/tests/stderr.txt') as f:
+        with open('C:/Users/sebap/git/controlnet/stderr.txt') as f:
             stderr = f.read().lower()
-        with open('D:/stable-diffusion-webui/extensions/sd-webui-controlnet/tests/stderr.txt', 'w') as f:
+        with open('C:/Users/sebap/git/controlnet/stderr.txt', 'w') as f:
             # clear stderr file so that we can easily parse the next test
             f.write("")
         self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)
@@ -153,67 +224,6 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
     def test_txt2img_simple_performed(self):
         self.assert_status_ok()
 
-    def test_txt2img_alwayson_scripts_default_units(self):
-        self.units_count = 0
-        self.setUp()
-        self.assert_status_ok()
-
-    def test_txt2img_multiple_batches_performed(self):
-        self.simple_txt2img["n_iter"] = 2
-        self.assert_status_ok()
-
-    def test_txt2img_batch_performed(self):
-        self.simple_txt2img["batch_size"] = 2
-        self.assert_status_ok()
-
-    def test_txt2img_2_units(self):
-        self.units_count = 2
-        self.setUp()
-        self.assert_status_ok()
-
-    def test_txt2img_8_units(self):
-        self.units_count = 8
-        self.setUp()
-        self.assert_status_ok()
-
-    def test_txt2img_default_params(self):
-        self.simple_txt2img["alwayson_scripts"]["ControlNet"]["args"] = [
-            {
-                "input_image": utils.readImage("d:/stable-diffusion-webui/test/test_files/img2img_basic.png"),
-                "model": utils.get_model(),
-            }
-        ]
-
-        self.assert_status_ok()
-
-    def test_call_with_preprocessors(self):
-        available_modules = utils.get_modules()
-        available_modules_list = available_modules.get('module_list', [])
-        available_modules_detail = available_modules.get('module_detail', {})
-        for module in ['depth', 'openpose_full']:
-            assert module in available_modules_list, f'Failed to find {module}.'
-            assert module in available_modules_detail, f"Failed to find {module}'s detail."
-            with self.subTest(module=module):
-                self.simple_txt2img["alwayson_scripts"]["ControlNet"]["args"] = [
-                    {
-                        "input_image": utils.readImage("d:/stable-diffusion-webui/test/test_files/img2img_basic.png"),
-                        "model": utils.get_model(),
-                        "module": module
-                    }
-                ]
-                self.assert_status_ok(f'Running preprocessor module: {module}')
-
-    def test_call_invalid_params(self):
-        for param in ('processor_res', 'threshold_a', 'threshold_b'):
-            with self.subTest(param=param):
-                self.simple_txt2img["alwayson_scripts"]["ControlNet"]["args"] = [
-                    {
-                        "input_image": utils.readImage("d:/stable-diffusion-webui/test/test_files/img2img_basic.png"),
-                        "model": utils.get_model(),
-                        param: -1,
-                    }
-                ]
-                self.assert_status_ok(f'Run with {param} = -1.')
 
 if __name__ == "__main__":
     unittest.main()
