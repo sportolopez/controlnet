@@ -105,6 +105,7 @@ def get_hair_segmentation(ruta_completa):
 class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
     archivos = os.listdir(PATH)
     archivos = [archivo for archivo in archivos if os.path.isfile(os.path.join(PATH, archivo))]
+    archivos = [archivo for archivo in archivos if "_segm" not in archivo]
 
     # Imprime la lista de archivos
     for archivo in archivos:
@@ -112,6 +113,8 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         get_hair_segmentation(ruta_completa)
         print(ruta_completa)
 
+
+    exit(1)
 
     def setUp(self):
         controlnet_unit = {
