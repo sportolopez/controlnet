@@ -202,11 +202,10 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
             response = requests.post(self.url_txt2img, json=self.simple_txt2img)
             self.assertEqual(response.status_code, 200, msg)
-            for index,aImage in enumerate(response.json()['images']):
-                decoded_data = base64.b64decode(aImage)
-                img_file = open(add_sufix_filename(ruta_completa, "gen"), 'wb')
-                img_file.write(decoded_data)
-                img_file.close()
+            decoded_data = base64.b64decode(response.json()['images'][0])
+            img_file = open(add_sufix_filename(ruta_completa, "_gen"), 'wb')
+            img_file.write(decoded_data)
+            img_file.close()
 
 
 
@@ -214,9 +213,9 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
 
 
         stderr = ""
-        with open('C:/Users/sebap/git/controlnet/stderr.txt') as f:
+        with open('stderr.txt') as f:
             stderr = f.read().lower()
-        with open('C:/Users/sebap/git/controlnet/stderr.txt', 'w') as f:
+        with open('stderr.txt', 'w') as f:
             # clear stderr file so that we can easily parse the next test
             f.write("")
         self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)
