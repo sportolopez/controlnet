@@ -27,8 +27,6 @@ def limpiar_cara(imagen_face, image):
             if imagen_face[y, x] != 0:  # Verificar si el píxel es negro
                 image[y, x] = 0  # Copiar el píxel de la imagen 1 a la imagen 2
 
-    # Guardar la imagen resultante
-    cv2.imwrite("imagen_limpiar_cara.png", image)
 
 
 def ensanchar_borde(imagen, dilatacion):
@@ -107,12 +105,13 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
     simple_txt2img = {}
 
     def setUpControlnet(self, image_path, seg_path):
+        read_image_original, resolution = utils.readImage(image_path)
         controlnet_unit = {
             "enabled": True,
             "module": "inpaint_only",
             "model": "control_v11p_sd15_inpaint [ebff9138]",
             "weight": 1.0,
-            "image": utils.readImage(image_path),
+            "image": read_image_original,
             "mask":  utils.readImage(seg_path),
             "resize_mode": 1,
             "lowvram": False,
@@ -125,9 +124,9 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             "pixel_perfect": False
         }
         setup_args = [controlnet_unit] * getattr(self, 'units_count', 1)
-        self.setup_route(setup_args)
+        self.setup_route(setup_args,resolution)
 
-    def setup_route(self, setup_args):
+    def setup_route(self, setup_args,resolution):
         self.url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
         self.simple_txt2img = {
                     "enable_hr": True,
@@ -147,8 +146,8 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
                     "n_iter": 1,
                     "steps": 20,
                     "cfg_scale": 7,
-                    "width": 512,
-                    "height": 512,
+                    "width": resolution[0],
+                    "height": resolution[1],
                     "restore_faces": False,
                     "tiling": False,
                     "eta": 0,

@@ -49,12 +49,13 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
 
 
     def setUp(self):
+        image = utils.readImage("images\\mujer3.jpg")
         controlnet_unit = {
             "enabled": True,
             "module": "inpaint_only",
             "model": "control_v11p_sd15_inpaint [ebff9138]",
             "weight": 1.0,
-            "image": utils.readImage("images\\mujer3.jpg"),
+            "image": image,
             "mask":  utils.readImage("segmentation.png"),
             "resize_mode": 1,
             "lowvram": False,

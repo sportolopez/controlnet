@@ -16,9 +16,14 @@ def setup_test_env():
 
 def readImage(path):
     img = cv2.imread(path)
-    retval, buffer = cv2.imencode('.jpg', img)
-    b64img = b64encode(buffer).decode("utf-8")
-    return b64img
+    if img is not None:
+        retval, buffer = cv2.imencode('.jpg', img)
+        b64img = b64encode(buffer).decode("utf-8")
+        height, width, _ = img.shape
+        return b64img, (width, height)
+    else:
+        raise ValueError("No se pudo leer la imagen en la ruta especificada.")
+
 
 
 def get_model():
