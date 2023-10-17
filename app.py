@@ -1,4 +1,6 @@
 import connexion
+import hair_seg_api
+
 
 def generar(body):
     imgBase64 = body['imgBase64']

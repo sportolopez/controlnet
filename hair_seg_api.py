@@ -99,10 +99,10 @@ def add_sufix_filename(ruta_completa, sufijo):
 
 # get_hair_segmentation(Image.open("mujer1.PNG").convert("RGB"))
 
+url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
+
 
 class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
-    url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
-    simple_txt2img = {}
 
     def setUpControlnet(self, image_path, seg_path):
         read_image_original, resolution = utils.readImage(image_path)
@@ -125,11 +125,10 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         }
         setup_args = [controlnet_unit] * getattr(self, 'units_count', 1)
         prompt = "(hi_top_fade_hairstyle:1.3),woman posing for a photo, good hand,4k, high-res, masterpiece, best quality, head:1.3,((Hasselblad photography)), finely detailed skin, sharp focus, (cinematic lighting), soft lighting, dynamic angle, [:(detailed face:1.2):0.2],  <lora:hi_top_fade_hairstyle:0.5> "
-        self.setup_route(setup_args,resolution, prompt)
+        return self.setup_route(setup_args,resolution, prompt)
 
     def setup_route(self, setup_args,resolution, prompt):
-        self.url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
-        self.simple_txt2img = {
+        simple_txt2img = {
                     "enable_hr": True,
                     "denoising_strength": 1,
                     "firstphase_width": 0,
@@ -181,12 +180,10 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
                     "sampler_name": "",
                     "alwayson_scripts": {}
         }
-        self.setup_controlnet_params(setup_args)
-
-    def setup_controlnet_params(self, setup_args):
-        self.simple_txt2img["alwayson_scripts"]["ControlNet"] = {
+        simple_txt2img["alwayson_scripts"]["ControlNet"] = {
             "args": setup_args
         }
+        return simple_txt2img
 
     def assert_status_ok(self, msg=None):
         print(self.simple_txt2img)
@@ -199,9 +196,9 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         for archivo in archivos:
             ruta_completa = os.path.join(PATH, archivo)
             nueva_ruta_completa = get_hair_segmentation(ruta_completa)
-            self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
+            json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
             print("Enviando imagen:"+archivo)
-            response = requests.post(self.url_txt2img, json=self.simple_txt2img)
+            response = requests.post(self.url_txt2img, json=json_body)
             self.assertEqual(response.status_code, 200, msg)
             decoded_data = base64.b64decode(response.json()['images'][0])
             img_file = open(add_sufix_filename(ruta_completa, "_gen"), 'wb')
