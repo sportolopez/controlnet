@@ -196,6 +196,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         # Imprime la lista de archivos
         for archivo in archivos:
             ruta_completa = os.path.join(PATH, archivo)
+            utils.resize_image_if_big(ruta_completa)
             nueva_ruta_completa = get_hair_segmentation(ruta_completa)
             print("Enviando imagen:" + archivo)
             print("Enviando imagen:" + ruta_completa)

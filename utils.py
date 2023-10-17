@@ -23,15 +23,27 @@ def readImage(path):
     b64img = b64encode(buffer).decode("utf-8")
     return b64img, wid, hgt
 
-def readImageResoluction(path):
-    img = cv2.imread(path)
-    if img is not None:
-        retval, buffer = cv2.imencode('.jpg', img)
-        b64img = b64encode(buffer).decode("utf-8")
-        height, width, _ = img.shape
-        return b64img, (width, height)
-    else:
-        raise ValueError("No se pudo leer la imagen en la ruta especificada.")
+
+def resize_image_if_big(image_path):
+    # Lee la imagen
+    img = cv2.imread(image_path)
+
+    # Obtiene el ancho y el alto
+    height, width, _ = img.shape
+
+    # Verifica si el ancho o el alto superan los 1024
+    if width > 1024 or height > 1024:
+        # Redimensiona la imagen manteniendo la relación de aspecto
+        if width >= height:
+            new_width = 1024
+            new_height = int(1024 * height / width)
+        else:
+            new_height = 1024
+            new_width = int(1024 * width / height)
+        resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+        # Sobreescribe la imagen original
+        cv2.imwrite(image_path, resized_img)
 
 
 
