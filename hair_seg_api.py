@@ -76,7 +76,7 @@ def get_hair_segmentation(ruta_completa):
     arr_seg = seg_pelo.cpu().numpy().astype("uint8")
     arr_seg *= 255
 
-    image = ensanchar_borde(arr_seg, 50)
+    image = ensanchar_borde(arr_seg, 25)
     limpiar_cara(arr_seg_cara, image)
 
     pil_seg = Image.fromarray(image)
@@ -115,7 +115,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             "mask":  utils.readImage(seg_path),
             "resize_mode": 1,
             "lowvram": False,
-            "processor_res": 512,
+            "processor_res": resolution[0],
             "threshold_a": -1,
             "threshold_b": -1,
             "guidance_start": 0.0,
@@ -124,16 +124,17 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             "pixel_perfect": False
         }
         setup_args = [controlnet_unit] * getattr(self, 'units_count', 1)
-        self.setup_route(setup_args,resolution)
+        prompt = "(hi_top_fade_hairstyle:1.3),woman posing for a photo, good hand,4k, high-res, masterpiece, best quality, head:1.3,((Hasselblad photography)), finely detailed skin, sharp focus, (cinematic lighting), soft lighting, dynamic angle, [:(detailed face:1.2):0.2],  <lora:hi_top_fade_hairstyle:0.5> "
+        self.setup_route(setup_args,resolution, prompt)
 
-    def setup_route(self, setup_args,resolution):
+    def setup_route(self, setup_args,resolution, prompt):
         self.url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
         self.simple_txt2img = {
                     "enable_hr": True,
                     "denoising_strength": 1,
                     "firstphase_width": 0,
                     "firstphase_height": 0,
-                    "prompt": "(hi_top_fade_hairstyle:1.3),woman posing for a photo, good hand,4k, high-res, masterpiece, best quality, head:1.3,((Hasselblad photography)), finely detailed skin, sharp focus, (cinematic lighting), soft lighting, dynamic angle, [:(detailed face:1.2):0.2],  <lora:hi_top_fade_hairstyle:0.5> ",
+                    "prompt": prompt,
                     "negative_prompt": "paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, skin spots, acnes, skin blemishes, age spot, glans",
                     "styles": [],
                     "seed": 22222222,
@@ -146,8 +147,8 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
                     "n_iter": 1,
                     "steps": 20,
                     "cfg_scale": 7,
-                    "width": resolution[0],
-                    "height": resolution[1],
+                    "width": 512,
+                    "height": 512,
                     "restore_faces": False,
                     "tiling": False,
                     "eta": 0,
@@ -193,12 +194,13 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         archivos = os.listdir(PATH)
         archivos = [archivo for archivo in archivos if os.path.isfile(os.path.join(PATH, archivo))]
         archivos = [archivo for archivo in archivos if "_segm" not in archivo]
-
+        archivos = [archivo for archivo in archivos if "_gen" not in archivo]
         # Imprime la lista de archivos
         for archivo in archivos:
             ruta_completa = os.path.join(PATH, archivo)
             nueva_ruta_completa = get_hair_segmentation(ruta_completa)
             self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
+            print("Enviando imagen:"+archivo)
             response = requests.post(self.url_txt2img, json=self.simple_txt2img)
             self.assertEqual(response.status_code, 200, msg)
             decoded_data = base64.b64decode(response.json()['images'][0])
