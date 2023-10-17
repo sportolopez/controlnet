@@ -16,6 +16,15 @@ def setup_test_env():
 
 def readImage(path):
     img = cv2.imread(path)
+    # fetching the dimensions
+    wid = img.shape[1]
+    hgt = img.shape[0]
+    retval, buffer = cv2.imencode('.jpg', img)
+    b64img = b64encode(buffer).decode("utf-8")
+    return b64img, wid, hgt
+
+def readImageResoluction(path):
+    img = cv2.imread(path)
     if img is not None:
         retval, buffer = cv2.imencode('.jpg', img)
         b64img = b64encode(buffer).decode("utf-8")
