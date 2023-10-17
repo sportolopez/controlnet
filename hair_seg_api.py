@@ -76,7 +76,7 @@ def get_hair_segmentation(ruta_completa):
     arr_seg = seg_pelo.cpu().numpy().astype("uint8")
     arr_seg *= 255
 
-    image = ensanchar_borde(arr_seg, 25)
+    image = ensanchar_borde(arr_seg, 40)
     limpiar_cara(arr_seg_cara, image)
 
     pil_seg = Image.fromarray(image)
@@ -118,7 +118,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             "mask":  read_image_seg,
             "resize_mode": 1,
             "lowvram": False,
-            "processor_res": 512,
+            #"processor_res": resolution[0],
             "threshold_a": -1,
             "threshold_b": -1,
             "guidance_start": 0.0,
