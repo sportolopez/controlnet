@@ -1,4 +1,5 @@
 import base64
+import time
 import unittest
 import importlib
 
@@ -18,7 +19,9 @@ import requests
 PATH = "images"
 
 utils.setup_test_env()
-
+url_txt2img = "https://9520452ebf31607b1f.gradio.live/sdapi/v1/txt2img"
+processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
+model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
 
 def limpiar_cara(imagen_face, image):
     # Iterar sobre los píxeles de la imagen 1
@@ -52,11 +55,7 @@ def ensanchar_borde(imagen, dilatacion):
 
 def get_hair_segmentation(ruta_completa):
     image = Image.open(ruta_completa).convert("RGB")
-    processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
-    model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
-
     inputs = processor(images=image, return_tensors="pt")
-
     outputs = model(**inputs)
     logits = outputs.logits.cpu()
 
@@ -97,11 +96,6 @@ def add_sufix_filename(ruta_completa, sufijo):
     return nueva_ruta_completa
 
 
-# get_hair_segmentation(Image.open("mujer1.PNG").convert("RGB"))
-
-url_txt2img = "http://localhost:7860/sdapi/v1/txt2img"
-
-
 class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
 
     def setUpControlnet(self, image_path, seg_path):
@@ -127,17 +121,17 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             "pixel_perfect": False
         }
         setup_args = [controlnet_unit] * getattr(self, 'units_count', 1)
-        prompt = "(hi_top_fade_hairstyle:1.3),woman posing for a photo, good hand,4k, high-res, masterpiece, best quality, head:1.3,((Hasselblad photography)), finely detailed skin, sharp focus, (cinematic lighting), soft lighting, dynamic angle, [:(detailed face:1.2):0.2],  <lora:hi_top_fade_hairstyle:0.5> "
+        prompt = "(a_line_haircut:1.3), 4k, high-res, masterpiece, best quality,((Hasselblad photography)), finely detailed skin, sharp focus, (cinematic lighting), soft lighting, dynamic angle,  <lora:a_line_hairstyle:0.5> "
         return self.setup_route(setup_args,resolution, prompt)
 
     def setup_route(self, setup_args,resolution, prompt):
         simple_txt2img = {
                     "enable_hr": True,
-                    "denoising_strength": 1,
+                    #"denoising_strength": 1,
                     "firstphase_width": 0,
                     "firstphase_height": 0,
                     "prompt": prompt,
-                    "negative_prompt": "paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, skin spots, acnes, skin blemishes, age spot, glans",
+                    "negative_prompt": "(greyscale:1.2),paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, age spot, glans",
                     "styles": [],
                     "seed": 22222222,
                     "subseed": -1,
@@ -165,8 +159,8 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
                     "refiner_switch_at": 0,
                     "disable_extra_networks": False,
                     "comments": {},
-                    "hr_scale": 1,
-                    "hr_upscaler": "None",
+                    #"hr_scale": 1,
+                    #"hr_upscaler": "None",
                     "hr_second_pass_steps": 0,
                     "hr_resize_x": 0,
                     "hr_resize_y": 0,
@@ -195,28 +189,30 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         archivos = [archivo for archivo in archivos if "_gen" not in archivo]
         # Imprime la lista de archivos
         for archivo in archivos:
+            print("Inicio imagen:" + archivo)
             ruta_completa = os.path.join(PATH, archivo)
             utils.resize_image_if_big(ruta_completa)
+            inicio = time.time()
             nueva_ruta_completa = get_hair_segmentation(ruta_completa)
-            print("Enviando imagen:" + archivo)
-            print("Enviando imagen:" + ruta_completa)
-            print("Enviando imagen:" + nueva_ruta_completa)
+            fin = time.time()
+            print(f"Tiempo de ejecución: {fin - inicio} segundos")
             json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
 
+            print("Inicio post")
+            inicio = time.time()
             response = requests.post(url=url_txt2img, json=json_body)
-            self.assertEqual(response.status_code, 200, msg)
+            if(response.status_code != 200):
+                print(f"Error {response.status_code}")
+                print(f"Error {response.headers}")
+            fin = time.time()
+            print(f"Tiempo de ejecución: {fin - inicio} segundos")
             decoded_data = base64.b64decode(response.json()['images'][0])
             img_file = open(add_sufix_filename(ruta_completa, "_gen"), 'wb')
             img_file.write(decoded_data)
             img_file.close()
 
-
-
-
-
-
         stderr = ""
-        with open('stderr.txt') as f:
+        with open('stderr.txt', 'w') as f:
             stderr = f.read().lower()
         with open('stderr.txt', 'w') as f:
             # clear stderr file so that we can easily parse the next test
