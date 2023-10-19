@@ -19,7 +19,7 @@ import requests
 PATH = "images"
 
 utils.setup_test_env()
-url_txt2img = "https://9520452ebf31607b1f.gradio.live/sdapi/v1/txt2img"
+url_txt2img = "http://127.0.0.1:7860/sdapi/v1/txt2img"
 processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
 model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
 
