@@ -17,6 +17,7 @@ from base64 import b64encode
 
 import utils
 import requests
+import datetime
 
 PATH = "images"
 
@@ -30,6 +31,11 @@ model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b
 
 processorFace = SegformerImageProcessor.from_pretrained("jonathandinu/face-parsing",resume_download=True)
 modelFace = AutoModelForSemanticSegmentation.from_pretrained("jonathandinu/face-parsing",resume_download=True)
+
+def hora():
+    hora_inicio = datetime.datetime.now()
+    hora_inicio_formateada = hora_inicio.strftime('%H:%M:%S.%f')[:-3]
+    print(f'Hora: {hora_inicio_formateada}')
 
 
 def limpiar_cara(imagen_face, image):
@@ -64,17 +70,13 @@ def get_face_segmentation(ruta_completa):
     )
     seg_pelo = upsampled_logits.argmax(dim=1)[0]
     #seg_pelo[seg_pelo != 5] = 0
-    mask = (seg_pelo != 1) & (seg_pelo != 2) & (seg_pelo != 3) & (seg_pelo != 4) & (seg_pelo != 5) & (seg_pelo != 6) & (seg_pelo != 7) & (seg_pelo != 9) & (seg_pelo != 10) & (seg_pelo != 11) & (seg_pelo != 12) &(seg_pelo != 16)
+    mask = (seg_pelo != 1) & (seg_pelo != 2) & (seg_pelo != 4) & (seg_pelo != 5) & (seg_pelo != 6) & (seg_pelo != 7) & (seg_pelo != 10) & (seg_pelo != 11) & (seg_pelo != 12)
     seg_pelo[mask] = 0
     arr_seg = seg_pelo.cpu().numpy().astype("uint8")
-    arr_seg *= 255
 
     #no se por que algunos byte no estan en 255
-    alto, ancho = arr_seg.shape
-    for y in range(alto - 1, -1, -1):
-        for x in range(ancho):
-            if arr_seg[y, x] != 0:
-                arr_seg[y, x] = 255
+    pixeles_no_cero = arr_seg != 0
+    arr_seg[pixeles_no_cero] = 255
 
     arr_seg = cv2.bitwise_not(arr_seg)
     imagen_ceja_i = get_image_by_byte(upsampled_logits.argmax(dim=1)[0],7)#uso el id de la oreja por que siempre lo identifica aca
@@ -83,7 +85,6 @@ def get_face_segmentation(ruta_completa):
     lower_point = get_lower_point(imagen_labio_inf)
     image_ensanchada = ensanchar_borde2(arr_seg, 150)
     image_clean = get_a_line_haircut(arr_seg,image_ensanchada,imagen_ceja_d,imagen_ceja_i,lower_point)
-
 
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
     pil_seg = Image.fromarray(image_ensanchada)
@@ -98,30 +99,19 @@ def get_image_by_byte(img_array,byte_id):
     return imagen
 
 def get_lower_point(imagen):
-    # Obtener las dimensiones de la imagen
-    alto, ancho = imagen.shape
+    # Encontrar el índice del primer píxel no blanco
+    indice_no_blanco = np.where(imagen != 255)
 
-    # Inicializar las coordenadas del punto más bajo
-    x_masbajo = -1
-    y_masbajo = -1
-
-    # Iterar sobre las filas desde abajo hacia arriba
-    for y in range(alto - 1, -1, -1):
-        for x in range(ancho):
-            if imagen[y, x] != 255:
-                print(imagen[y, x])
-            if imagen[y, x] == 0:  # Si el píxel es negro (0 en escala de grises)
-                x_masbajo = x
-                y_masbajo = y
-                break
-        if x_masbajo != -1:
-            break
-
-    # Verificar si se encontró un píxel negro (forma irregular presente)
-    if x_masbajo != -1:
-        print(f"El punto más bajo está en las coordenadas: ({x_masbajo}, {y_masbajo})")
+    # Si no se encontraron píxeles no blancos
+    if len(indice_no_blanco[0]) == 0:
+        x_masbajo = -1
+        y_masbajo = -1
     else:
-        print("No se encontró una forma irregular en la imagen.")
+        # Obtener el último píxel no blanco
+        y_masbajo = indice_no_blanco[0][-1]
+        x_masbajo = indice_no_blanco[1][-1]
+
+    print(f"El punto más bajo está en las coordenadas: ({x_masbajo}, {y_masbajo})")
     return x_masbajo, y_masbajo
 
 def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_point):
@@ -137,7 +127,7 @@ def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_poi
             if (imagen_face[y, x] == 0 and #Elimina la cara
                     # Agrega la frente
                     y > y_ceja - 10) or \
-                    y > lower_point[0]: #Corte hasta un Y determinado (obtenido por el borde de la boca)
+                    y > lower_point[1]: #Corte hasta un Y determinado (obtenido por el borde de la boca)
                 image[y, x] = 255  #
     return image
 
