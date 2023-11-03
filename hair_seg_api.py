@@ -73,11 +73,9 @@ def get_face_segmentation(ruta_completa):
     mask = (seg_pelo != 1) & (seg_pelo != 2) & (seg_pelo != 4) & (seg_pelo != 5) & (seg_pelo != 6) & (seg_pelo != 7) & (seg_pelo != 10) & (seg_pelo != 11) & (seg_pelo != 12)
     seg_pelo[mask] = 0
     arr_seg = seg_pelo.cpu().numpy().astype("uint8")
-
     #no se por que algunos byte no estan en 255
     pixeles_no_cero = arr_seg != 0
     arr_seg[pixeles_no_cero] = 255
-
     arr_seg = cv2.bitwise_not(arr_seg)
     imagen_ceja_i = get_image_by_byte(upsampled_logits.argmax(dim=1)[0],7)#uso el id de la oreja por que siempre lo identifica aca
     imagen_ceja_d = get_image_by_byte(upsampled_logits.argmax(dim=1)[0],6)
@@ -85,11 +83,12 @@ def get_face_segmentation(ruta_completa):
     lower_point = get_lower_point(imagen_labio_inf)
     image_ensanchada = ensanchar_borde2(arr_seg, 150)
     image_clean = get_a_line_haircut(arr_seg,image_ensanchada,imagen_ceja_d,imagen_ceja_i,lower_point)
-
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
+    # pil_seg = Image.fromarray(image_clean).convert('RGB')
     pil_seg = Image.fromarray(image_ensanchada)
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
+    return image_clean
 
 def get_image_by_byte(img_array,byte_id):
     img_array[img_array != byte_id] = 0
@@ -120,6 +119,13 @@ def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_poi
     coordenadas = cv2.minMaxLoc(image_ceja_l)
     x, y_ceja_l = coordenadas[2]
     y_ceja = y_ceja_r if y_ceja_r > y_ceja_l else y_ceja_l
+
+    # # Crear una máscara para los píxeles que deben mantenerse
+    # mascara = ((imagen_face == 0) & (np.arange(imagen_face.shape[0]) > y_ceja - 10)) | (
+    #             np.arange(imagen_face.shape[0]) > lower_point[1])
+    #
+    # # Aplicar la máscara y establecer los píxeles seleccionados en 255
+    # image2 = np.where(mascara, 255, image)
 
     # Iterar sobre los píxeles de la imagen 1
     for y in range(imagen_face.shape[0]):
@@ -179,7 +185,7 @@ def get_hair_segmentation(ruta_completa):
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
 
-    return nueva_ruta_completa
+    return nueva_ruta_completa, image
 
 
 def add_sufix_filename(ruta_completa, sufijo):
@@ -288,8 +294,12 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             ruta_completa = os.path.join(PATH, archivo)
             utils.resize_image_if_big(ruta_completa)
             inicio = time.time()
-            nueva_ruta_completa = get_hair_segmentation(ruta_completa)
-            get_face_segmentation(ruta_completa)
+            nueva_ruta_completa, image_hair = get_hair_segmentation(ruta_completa)
+            image_face = get_face_segmentation(ruta_completa)
+            image_hair = cv2.bitwise_not(image_hair)
+            imagen_unida = cv2.bitwise_and(image_hair, image_face)
+            imagen_unida = cv2.bitwise_not(imagen_unida)
+            
             fin = time.time()
             print(f"Tiempo de ejecución: {fin - inicio} segundos")
             json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
