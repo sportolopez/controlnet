@@ -84,7 +84,6 @@ def get_face_segmentation(ruta_completa):
     image_ensanchada = ensanchar_borde2(arr_seg, 150)
     image_clean = get_a_line_haircut(arr_seg,image_ensanchada,imagen_ceja_d,imagen_ceja_i,lower_point)
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
-    # pil_seg = Image.fromarray(image_clean).convert('RGB')
     pil_seg = Image.fromarray(image_ensanchada)
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
@@ -118,23 +117,17 @@ def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_poi
     x, y_ceja_r = coordenadas[2]
     coordenadas = cv2.minMaxLoc(image_ceja_l)
     x, y_ceja_l = coordenadas[2]
-    y_ceja = y_ceja_r if y_ceja_r > y_ceja_l else y_ceja_l
+    y_ceja = y_ceja_r if y_ceja_r < y_ceja_l else y_ceja_l
 
-    # # Crear una máscara para los píxeles que deben mantenerse
-    # mascara = ((imagen_face == 0) & (np.arange(imagen_face.shape[0]) > y_ceja - 10)) | (
-    #             np.arange(imagen_face.shape[0]) > lower_point[1])
-    #
-    # # Aplicar la máscara y establecer los píxeles seleccionados en 255
-    # image2 = np.where(mascara, 255, image)
+    altura_imagen = imagen_face.shape[0]
+    # Crear una máscara para los píxeles que deben mantenerse
+    limite_y = y_ceja - 10
+    imagen_face[0:limite_y, :] = 255
+    image[lower_point[1]:altura_imagen, :] = 255
+    mascara_pepito = (imagen_face != 0)
+    mascara_pepito2 = (image == 0)
+    image = np.where(mascara_pepito & mascara_pepito2, 0, 255)
 
-    # Iterar sobre los píxeles de la imagen 1
-    for y in range(imagen_face.shape[0]):
-        for x in range(imagen_face.shape[1]):
-            if (imagen_face[y, x] == 0 and #Elimina la cara
-                    # Agrega la frente
-                    y > y_ceja - 10) or \
-                    y > lower_point[1]: #Corte hasta un Y determinado (obtenido por el borde de la boca)
-                image[y, x] = 255  #
     return image
 
 def ensanchar_borde2(imagen, dilatacion):
@@ -299,7 +292,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             image_hair = cv2.bitwise_not(image_hair)
             imagen_unida = cv2.bitwise_and(image_hair, image_face)
             imagen_unida = cv2.bitwise_not(imagen_unida)
-            
+
             fin = time.time()
             print(f"Tiempo de ejecución: {fin - inicio} segundos")
             json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
