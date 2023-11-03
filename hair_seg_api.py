@@ -84,7 +84,7 @@ def get_face_segmentation(ruta_completa):
     image_ensanchada = ensanchar_borde2(arr_seg, 150)
     image_clean = get_a_line_haircut(arr_seg,image_ensanchada,imagen_ceja_d,imagen_ceja_i,lower_point)
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
-    pil_seg = Image.fromarray(image_ensanchada)
+    pil_seg = Image.fromarray(image_clean)
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
     return image_clean
@@ -112,6 +112,7 @@ def get_lower_point(imagen):
     print(f"El punto más bajo está en las coordenadas: ({x_masbajo}, {y_masbajo})")
     return x_masbajo, y_masbajo
 
+
 def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_point):
     coordenadas = cv2.minMaxLoc(image_ceja_r)
     x, y_ceja_r = coordenadas[2]
@@ -127,8 +128,9 @@ def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_poi
     mascara_pepito = (imagen_face != 0)
     mascara_pepito2 = (image == 0)
     image = np.where(mascara_pepito & mascara_pepito2, 0, 255)
-
+    image = image.astype(np.uint8)
     return image
+
 
 def ensanchar_borde2(imagen, dilatacion):
     # Invertir los colores (negativo)
