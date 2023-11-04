@@ -23,8 +23,8 @@ PATH = "images"
 
 utils.setup_test_env()
 
-host = "https://87a0419dd81c45550a.gradio.live/"
-# host = "http://127.0.0.1:7860/"
+#host = "https://87a0419dd81c45550a.gradio.live/"
+host = "http://127.0.0.1:7860/"
 url_txt2img = host + "sdapi/v1/txt2img"
 processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
 model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
@@ -232,7 +232,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
     def setup_route(self, setup_args, resolution, prompt):
         simple_txt2img = {
             "enable_hr": True,
-            # "denoising_strength": 1,
+            "denoising_strength": 1,
             "firstphase_width": 0,
             "firstphase_height": 0,
             "prompt": prompt,
@@ -264,13 +264,13 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             "refiner_switch_at": 0,
             "disable_extra_networks": False,
             "comments": {},
-            # "hr_scale": 1,
-            # "hr_upscaler": "None",
+            "hr_scale": 1,
+            "hr_upscaler": "None",
             "hr_second_pass_steps": 0,
             "hr_resize_x": 0,
             "hr_resize_y": 0,
             "hr_checkpoint_name": "",
-            # "hr_sampler_name": "",
+            "hr_sampler_name": "",
             "hr_prompt": "",
             "hr_negative_prompt": "",
             "script_name": "",
@@ -293,6 +293,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         archivos = [archivo for archivo in archivos if "_segm" not in archivo]
         archivos = [archivo for archivo in archivos if "_gen" not in archivo]
         archivos = [archivo for archivo in archivos if "_face" not in archivo]
+        archivos = [archivo for archivo in archivos if "_union" not in archivo]
 
         # Imprime la lista de archivos
         for archivo in archivos:
@@ -313,7 +314,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             fin = time.time()
             print(f"Tiempo de ejecución: {fin - inicio} segundos")
             json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
-            '''
+
             print("Inicio post")
             inicio = time.time()
             response = requests.post(url=url_txt2img, json=json_body)
@@ -337,7 +338,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         with open('stderr.txt', 'w') as f:
             # clear stderr file so that we can easily parse the next test
             f.write("")
-        self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)'''
+        self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)
 
     def test_txt2img_simple_performed(self):
         self.assert_status_ok()
