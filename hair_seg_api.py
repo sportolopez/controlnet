@@ -304,7 +304,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             fin = time.time()
             print(f"Tiempo de ejecución: {fin - inicio} segundos")
             json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
-            '''
+
             print("Inicio post")
             inicio = time.time()
             response = requests.post(url=url_txt2img, json=json_body)
@@ -328,7 +328,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         with open('stderr.txt', 'w') as f:
             # clear stderr file so that we can easily parse the next test
             f.write("")
-        self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)'''
+        self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)
 
     def test_txt2img_simple_performed(self):
         self.assert_status_ok()
