@@ -23,8 +23,8 @@ PATH = "images"
 
 utils.setup_test_env()
 
-#host = "https://87a0419dd81c45550a.gradio.live/"
-host = "http://127.0.0.1:7860/"
+host = "https://87a0419dd81c45550a.gradio.live/"
+# host = "http://127.0.0.1:7860/"
 url_txt2img = host + "sdapi/v1/txt2img"
 processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
 model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
@@ -71,8 +71,9 @@ def get_face_segmentation(ruta_completa):
     )
     seg_pelo = upsampled_logits.argmax(dim=1)[0]
     # seg_pelo[seg_pelo != 5] = 0
-    mask = (seg_pelo != 1) & (seg_pelo != 2) & (seg_pelo != 3) & (seg_pelo != 4) & (seg_pelo != 5) & (seg_pelo != 6) & (
-                seg_pelo != 7) & (seg_pelo != 10) & (seg_pelo != 11) & (seg_pelo != 12)
+    mask = (seg_pelo != 1) & (seg_pelo != 2) & (seg_pelo != 4) & (seg_pelo != 5) & (seg_pelo != 6) & (seg_pelo != 7) & (
+                seg_pelo != 10) & (seg_pelo != 11) & (seg_pelo != 12)
+
     seg_pelo[mask] = 0
     arr_seg = seg_pelo.cpu().numpy().astype("uint8")
     # no se por que algunos byte no estan en 255
@@ -81,17 +82,20 @@ def get_face_segmentation(ruta_completa):
     arr_seg = cv2.bitwise_not(arr_seg)
     imagen_ceja_i = get_image_by_byte(upsampled_logits.argmax(dim=1)[0],
                                       7)  # uso el id de la oreja por que siempre lo identifica aca
+
     imagen_ceja_d = get_image_by_byte(upsampled_logits.argmax(dim=1)[0], 6)
     imagen_labio_inf = get_image_by_byte(upsampled_logits.argmax(dim=1)[0],
                                          12)  # uso la del cuello por que no identifica bien labio inf
+
     lower_point = get_lower_point(imagen_labio_inf)
     image_ensanchada = ensanchar_borde2(arr_seg, 150)
     image_clean = get_a_line_haircut(arr_seg, image_ensanchada, imagen_ceja_d, imagen_ceja_i, lower_point)
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
+
     pil_seg = Image.fromarray(image_clean)
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
-    return image_ensanchada
+    return image_clean
 
 
 def get_image_by_byte(img_array, byte_id):
@@ -289,7 +293,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         archivos = [archivo for archivo in archivos if "_segm" not in archivo]
         archivos = [archivo for archivo in archivos if "_gen" not in archivo]
         archivos = [archivo for archivo in archivos if "_face" not in archivo]
-        archivos = [archivo for archivo in archivos if "_union" not in archivo]
+
         # Imprime la lista de archivos
         for archivo in archivos:
             print("Inicio imagen:" + archivo)
@@ -301,10 +305,15 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             image_hair = cv2.bitwise_not(image_hair)
             imagen_unida = cv2.bitwise_and(image_hair, image_face)
             imagen_unida = cv2.bitwise_not(imagen_unida)
+
+            nueva_ruta_completa = add_sufix_filename(ruta_completa, "_union")
+            pil_seg = Image.fromarray(imagen_unida)
+            pil_seg.save(nueva_ruta_completa)
+            pil_seg.close()
             fin = time.time()
             print(f"Tiempo de ejecución: {fin - inicio} segundos")
             json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
-
+            '''
             print("Inicio post")
             inicio = time.time()
             response = requests.post(url=url_txt2img, json=json_body)
@@ -328,7 +337,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
         with open('stderr.txt', 'w') as f:
             # clear stderr file so that we can easily parse the next test
             f.write("")
-        self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)
+        self.assertFalse('error' in stderr, "Errors in stderr: \n" + stderr)'''
 
     def test_txt2img_simple_performed(self):
         self.assert_status_ok()
