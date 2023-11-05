@@ -128,7 +128,7 @@ def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_poi
     x, y_ceja_r = coordenadas[2]
     coordenadas = cv2.minMaxLoc(image_ceja_l)
     x, y_ceja_l = coordenadas[2]
-    y_ceja = y_ceja_r if y_ceja_r < y_ceja_l else y_ceja_l
+    y_ceja = y_ceja_l if y_ceja_r == 0 else y_ceja_r if y_ceja_l == 0 else min(y_ceja_r, y_ceja_l)
 
     altura_imagen = imagen_face.shape[0]
     # Crear una máscara para los píxeles que deben mantenerse
