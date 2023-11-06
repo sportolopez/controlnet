@@ -90,11 +90,12 @@ def get_face_segmentation(ruta_completa):
     lower_point = get_lower_point(imagen_labio_inf)
     image_ensanchada = ensanchar_borde2(arr_seg, 150)
     image_clean = get_a_line_haircut(arr_seg, image_ensanchada, imagen_ceja_d, imagen_ceja_i, lower_point)
+    '''
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
 
     pil_seg = Image.fromarray(image_clean)
     pil_seg.save(nueva_ruta_completa)
-    pil_seg.close()
+    pil_seg.close()'''
     return image_clean
 
 
@@ -182,15 +183,15 @@ def get_hair_segmentation(ruta_completa):
 
     image = ensanchar_borde(arr_seg, 40)
     limpiar_cara(arr_seg_cara, image)
-
+    '''
     pil_seg = Image.fromarray(image)
 
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_segm")
 
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()
-
-    return nueva_ruta_completa, image
+    '''
+    return image
 
 
 def add_sufix_filename(ruta_completa, sufijo):
@@ -301,13 +302,13 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             ruta_completa = os.path.join(PATH, archivo)
             utils.resize_image_if_big(ruta_completa)
             inicio = time.time()
-            nueva_ruta_completa, image_hair = get_hair_segmentation(ruta_completa)
+            image_hair = get_hair_segmentation(ruta_completa)
             image_face = get_face_segmentation(ruta_completa)
             image_hair = cv2.bitwise_not(image_hair)
             imagen_unida = cv2.bitwise_and(image_hair, image_face)
             imagen_unida = cv2.bitwise_not(imagen_unida)
 
-            nueva_ruta_completa = add_sufix_filename(ruta_completa, "_union")
+            nueva_ruta_completa = add_sufix_filename(ruta_completa, "_segm")
             pil_seg = Image.fromarray(imagen_unida)
             pil_seg.save(nueva_ruta_completa)
             pil_seg.close()
