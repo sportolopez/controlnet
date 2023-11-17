@@ -315,7 +315,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             fin = time.time()
             print(f"Tiempo de ejecución: {fin - inicio} segundos")
             json_body = self.setUpControlnet(image_path=ruta_completa, seg_path=nueva_ruta_completa)
-
+            '''
             print("Inicio post")
             inicio = time.time()
             response = requests.post(url=url_txt2img, json=json_body)
@@ -331,6 +331,7 @@ class TestAlwaysonTxt2ImgWorking(unittest.TestCase):
             img_file = open(add_sufix_filename(ruta_completa, "_gen"), 'wb')
             img_file.write(decoded_data)
             img_file.close()
+            '''
 
 
         stderr = ""

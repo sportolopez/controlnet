@@ -1,0 +1,58 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "API de Ejemplo"
+  description: "Descripción de la API de Ejemplo."
+
+schemes:
+  - "http"
+  - "https"
+
+paths:
+  /status:
+    get:
+      operationId: "app.status"
+      responses:
+        200:
+          description: "Respuesta exitosa."
+          schema:
+            type: "string"
+  /generar:
+    post:
+      operationId: "app.generar"
+      consumes:
+        - "application/json"  # Modified content type to accept JSON
+      summary: "Generar algo basado en la imagen y el prompt proporcionados"
+      description: "Genera algo utilizando la imagen base64, el prompt y el neg_prompt."
+      parameters:
+        - name: "requestBody"
+          in: "body"
+          description: "Objeto JSON con la información requerida"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              image:
+                type: "string"
+                description: "Imagen codificada en base64"
+              imagen_mask:
+                type: "string"
+                description: "Mask codificada en base64"
+              prompt:
+                type: "string"
+                description: "Texto de estímulo para la generación"
+              neg_prompt:
+                type: "string"
+                description: "Texto de estímulo negativo"
+              seed:
+                type: "number"
+                description: "Seed"
+      responses:
+        200:
+          description: "Respuesta exitosa."
+          schema:
+            type: "string"  # Modify this to the appropriate type if needed
+          headers:
+            Content-Type:
+              type: "string"
+              format: "binary"
