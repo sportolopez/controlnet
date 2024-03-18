@@ -1,0 +1,9 @@
+REPEAT_IMAGE_RATIO_THRESHOLD
+1.47 :: C:\Users\Administrator\git\controlnet\loras\bun_hairstyle-10.safetensors
+
+
+TAG_LENGTH_THRESHOLD
+291 :: C:\Users\Administrator\git\controlnet\loras\side_buns_hairstyle.safetensors
+
+
+FINAL SCORE (total LoRAs found): 2 (6.9%)

@@ -1,3 +1,8 @@
 /dreambooth/class-dir
 /dreambooth/wandb
 /dreambooth/path-to-save-model
+/images_preresize
+/images
+/loras
+/*/__pycache__
+/api/__pycache__

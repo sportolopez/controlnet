@@ -24,7 +24,7 @@ def readImage(path):
     return b64img, wid, hgt
 
 
-def resize_image_if_big(image_path):
+def resize_image_if_big_by_size(image_path,max_w_h):
     # Lee la imagen
     img = cv2.imread(image_path)
 
@@ -32,18 +32,24 @@ def resize_image_if_big(image_path):
     height, width, _ = img.shape
 
     # Verifica si el ancho o el alto superan los 1024
-    if width > 1024 or height > 1024:
+    if width > max_w_h or height > max_w_h:
+        print("Se redimensiona la imagen a "+str(max_w_h))
         # Redimensiona la imagen manteniendo la relación de aspecto
         if width >= height:
-            new_width = 1024
-            new_height = int(1024 * height / width)
+            new_width = max_w_h
+            new_height = int(max_w_h * height / width)
         else:
-            new_height = 1024
-            new_width = int(1024 * width / height)
+            new_height = max_w_h
+            new_width = int(max_w_h * width / height)
         resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
         # Sobreescribe la imagen original
         cv2.imwrite(image_path, resized_img)
+
+def resize_image_if_big(image_path):
+    # Lee la imagen
+    resize_image_if_big_by_size(image_path,1024)
+
 
 
 

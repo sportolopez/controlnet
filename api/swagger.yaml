@@ -9,6 +9,14 @@ schemes:
   - "https"
 
 paths:
+  /login:
+    get:
+      operationId: "app.login"
+      responses:
+        200:
+          description: Token válido.
+        401:
+          description: Token inválido.
   /status:
     get:
       operationId: "app.status"
@@ -47,6 +55,12 @@ paths:
               seed:
                 type: "number"
                 description: "Seed"
+              lora:
+                type: "string"
+                description: "Lora"
+              max_size:
+                type: "string"
+                description: "tamaño maximo"
       responses:
         200:
           description: "Respuesta exitosa."
