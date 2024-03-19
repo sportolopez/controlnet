@@ -209,6 +209,7 @@ def extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face):
     mascara_face = (face == 255)
     image = np.where(mascara_pepito & imagen_ropa & imagen_cuello & mascara_face, 255, 0)
     image = image.astype(np.uint8)
+    return image
 
 
 def add_sufix_filename(ruta_completa, sufijo):
@@ -220,6 +221,8 @@ def add_sufix_filename(ruta_completa, sufijo):
 
 
 def segment_hair(image, pelo_largo):
+    image = image.convert("RGB")
+
     #utils.resize_image_if_big(ruta_completa)
     inicio = time.time()
     image_hair = get_hair_segmentation(image)
@@ -228,7 +231,7 @@ def segment_hair(image, pelo_largo):
     imagen_unida = cv2.bitwise_and(image_hair, image_face)
     imagen_unida = cv2.bitwise_not(imagen_unida)
     if pelo_largo:
-        extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face)
+        imagen_unida = extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face)
     tiempo_transcurrido = time.time() - inicio
     print(f"******La ejecución de segment_hair tardó {tiempo_transcurrido} segundos")
     return Image.fromarray(imagen_unida)
@@ -239,6 +242,6 @@ def segment_hair(image, pelo_largo):
 
 if __name__ == "__main__":
 
-    segmentacion = segment_hair(Image.open("../../images/20.jpg"), False)
-    segmentacion.save("../images/20_segamano.jpg")
+    segmentacion = segment_hair(Image.open("../../images/20.png"), True)
+    segmentacion.save("../../images/20_segamano_largo.jpg")
     segmentacion.close()
