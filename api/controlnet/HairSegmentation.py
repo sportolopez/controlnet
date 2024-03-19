@@ -47,7 +47,7 @@ def ensanchar_borde(imagen, dilatacion):
     return borde_ensanchado
 
 
-def get_face_segmentation(image):
+def get_face_segmentation(image, pelo_largo):
     inputs = processorFace(images=image, return_tensors="pt")
     outputs = modelFace(**inputs)
     logits = outputs.logits.cpu()
@@ -77,15 +77,25 @@ def get_face_segmentation(image):
                                          12)  # uso la del cuello por que no identifica bien labio inf
 
     lower_point = get_lower_point(imagen_labio_inf)
-    image_ensanchada = ensanchar_borde2(arr_seg, 150)
-    image_clean = get_a_line_haircut(arr_seg, image_ensanchada, imagen_ceja_d, imagen_ceja_i, lower_point)
+
+    imagen_cuello = ''
+    imagen_ropa = ''
+
+    if pelo_largo:
+        image_ensanchada = ensanchar_borde2(arr_seg, 175)
+        imagen_cuello = get_image_by_byte(upsampled_logits.argmax(dim=1)[0],17)
+        imagen_ropa = get_image_by_byte(upsampled_logits.argmax(dim=1)[0], 18)
+    else:
+        image_ensanchada = ensanchar_borde2(arr_seg, 150)
+
+    image_clean = get_a_line_haircut(arr_seg, image_ensanchada, imagen_ceja_d, imagen_ceja_i, lower_point, pelo_largo)
     '''
     nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
 
     pil_seg = Image.fromarray(image_clean)
     pil_seg.save(nueva_ruta_completa)
     pil_seg.close()'''
-    return image_clean
+    return image_clean, imagen_cuello, imagen_ropa, arr_seg
 
 
 def get_image_by_byte(img_array, byte_id):
@@ -113,7 +123,7 @@ def get_lower_point(imagen):
     return x_masbajo, y_masbajo
 
 
-def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_point):
+def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_point, pelo_largo):
     coordenadas = cv2.minMaxLoc(image_ceja_r)
     x, y_ceja_r = coordenadas[2]
     coordenadas = cv2.minMaxLoc(image_ceja_l)
@@ -124,7 +134,8 @@ def get_a_line_haircut(imagen_face, image, image_ceja_r, image_ceja_l, lower_poi
     # Crear una máscara para los píxeles que deben mantenerse
     limite_y = y_ceja - 10
     imagen_face[0:limite_y, :] = 255
-    image[lower_point[1]:altura_imagen, :] = 255
+    if not pelo_largo:
+        image[lower_point[1]:altura_imagen, :] = 255
     mascara_pepito = (imagen_face != 0)
     mascara_pepito2 = (image == 0)
     image = np.where(mascara_pepito & mascara_pepito2, 0, 255)
@@ -137,15 +148,17 @@ def ensanchar_borde2(imagen, dilatacion):
     imagen_invertida = cv2.bitwise_not(imagen)
 
     # Definir el kernel para la operación de dilatación
-    kernel = np.ones((dilatacion, dilatacion), np.uint8)
+    # KERNEL CUADRADO
+    # kernel = np.ones((dilatacion, dilatacion), np.uint8)
+    # borde_ensanchado = cv2.dilate(imagen_invertida, kernel, iterations=1)
+    # borde_ensanchado = cv2.bitwise_not(borde_ensanchado)
 
-    # Aplicar la operación de dilatación
-    borde_ensanchado = cv2.dilate(imagen_invertida, kernel, iterations=1)
+    # KERNEL CIRCULAR
+    kernel_circular = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilatacion, dilatacion))
+    borde_ensanchado_circular = cv2.dilate(imagen_invertida, kernel_circular, iterations=1)
+    borde_ensanchado_circular = cv2.bitwise_not(borde_ensanchado_circular)
 
-    # Invertir nuevamente los colores para obtener el resultado final
-    borde_ensanchado = cv2.bitwise_not(borde_ensanchado)
-
-    return borde_ensanchado
+    return borde_ensanchado_circular
 
 
 def get_hair_segmentation(image):
@@ -182,6 +195,22 @@ def get_hair_segmentation(image):
     return image
 
 
+def extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face):
+    coordenadas = np.argwhere(imagen_unida == 255)
+
+    objeto_y_mas_alto = max(coordenadas, key=lambda item: item[1])
+    objeto_y_mas_bajo = min(coordenadas, key=lambda item: item[1])
+
+    # Crear una máscara para los píxeles que deben mantenerse
+    imagen_unida[objeto_y_mas_alto[0]: imagen_unida.shape[0], objeto_y_mas_bajo[1]:objeto_y_mas_alto[1]] = 255
+
+    # image[lower_point[1]:altura_imagen, :] = 255
+    mascara_pepito = (imagen_unida != 0)
+    mascara_face = (face == 255)
+    image = np.where(mascara_pepito & imagen_ropa & imagen_cuello & mascara_face, 255, 0)
+    image = image.astype(np.uint8)
+
+
 def add_sufix_filename(ruta_completa, sufijo):
     carpeta, nombre_archivo = os.path.split(ruta_completa)
     nombre_base, extension = os.path.splitext(nombre_archivo)
@@ -190,14 +219,16 @@ def add_sufix_filename(ruta_completa, sufijo):
     return nueva_ruta_completa
 
 
-def segment_hair(image):
+def segment_hair(image, pelo_largo):
     #utils.resize_image_if_big(ruta_completa)
     inicio = time.time()
     image_hair = get_hair_segmentation(image)
-    image_face = get_face_segmentation(image)
+    image_face, imagen_cuello, imagen_ropa, face = get_face_segmentation(image, pelo_largo)
     image_hair = cv2.bitwise_not(image_hair)
     imagen_unida = cv2.bitwise_and(image_hair, image_face)
     imagen_unida = cv2.bitwise_not(imagen_unida)
+    if pelo_largo:
+        extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face)
     tiempo_transcurrido = time.time() - inicio
     print(f"******La ejecución de segment_hair tardó {tiempo_transcurrido} segundos")
     return Image.fromarray(imagen_unida)
@@ -208,6 +239,6 @@ def segment_hair(image):
 
 if __name__ == "__main__":
 
-    segmentacion = segment_hair(Image.open("../../images/20.jpg"))
+    segmentacion = segment_hair(Image.open("../../images/20.jpg"), False)
     segmentacion.save("../images/20_segamano.jpg")
     segmentacion.close()
