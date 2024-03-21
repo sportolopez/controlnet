@@ -12,34 +12,34 @@ headers = {
 
 # Enum para los valores de lora
 Loras = {
-    "bridal_hairstyle-10.safetensors": "bridal_hairstyle",
-    "curls_hairstyle-10.safetensors": "curls_hairstyle",
-    "dreads_hairstyle.safetensors": "dreads_hairstyle",
-    "ponytail_weave_hairstyle.safetensors": "ponytail_weave_hairstyle",
-    "egyptian_bob_hairstyle.safetensors": "egyptian_bob_hairstyle",
-    "emo_hairstyle.safetensors": "emo_hairstyle",
-    "long_braid_hairstyle-10.safetensors": "long_braid_hairstyle",
-    "middle_parting_hairstyle.safetensors": "middle_parting_hairstyle",
-    "short_dreads_hairstyle.safetensors": "short_dreads_hairstyle",
-    "a_line_hairstyle.safetensors": "a_line_haircut",
-    "baldie_hairstyle.safetensors": "baldie_hairstyle",
-    "bun_hairstyle-10.safetensors": "bun_hairstyle",
-    "buzzcut_hairstyle.safetensors": "buzzcut_heairstyle",
-    "colored_buzzcut_hairstyle-10.safetensors": "colored_buzzcut_hairstyle",
-    "half_buzzcut_hairstyle.safetensors": "half_buzzcut_heairstyle",
-    "half_ponytail_hairstyle-10.safetensors": "half_ponytail_hairstyle",
-    "hi_top_fade_hairstyle.safetensors": "hi_top_fade_hairstyle",
-    "knotless_braid_hairstyle.safetensors": "knotless_braid_hairstyle",
-    "long_hime_cut_hairstyle.safetensors": "long_hime_cut_hairstyle",
-    "long_ponytail_hairstyle.safetensors": "long_ponytail_hairstyle",
-    "pigtail_hairstyle.safetensors": "pigtail_hairstyle",
-    "pixie_hairstyle-05.safetensors": "pixie_hairstyle",
-    "short_pigtail_hairstyle05.safetensors": "short_pigtail_hairstyle",
-    "side_buns_hairstyle.safetensors": "side_buns_hairstyle",
-    "side_swept_hair-05.safetensors": "side_swept_hair",
-    "space_buns_hairstyle.safetensors": "space_buns_hairstyle",
-    "updo_hairstyle.safetensors": "updo_hairstyle",
-    "very_long_hair-10.safetensors": "very_long_hair"
+    "bridal_hairstyle-10.safetensors": "Largo",
+    "curls_hairstyle-10.safetensors": "Largo",
+    "dreads_hairstyle.safetensors": "Largo",
+    "ponytail_weave_hairstyle.safetensors": "Largo",
+    "egyptian_bob_hairstyle.safetensors": "Corto",
+    "emo_hairstyle.safetensors": "Largo",
+    "long_braid_hairstyle-10.safetensors": "Largo",
+    "middle_parting_hairstyle.safetensors": "Largo",
+    "short_dreads_hairstyle.safetensors": "Corto",
+    "a_line_hairstyle.safetensors": "Corto",
+    "baldie_hairstyle.safetensors": "Corto",
+    "bun_hairstyle-10.safetensors": "Corto",
+    "buzzcut_hairstyle.safetensors": "Corto",
+    "colored_buzzcut_hairstyle-10.safetensors": "Corto",
+    "half_buzzcut_hairstyle.safetensors": "Corto",
+    "half_ponytail_hairstyle-10.safetensors": "Largo",
+    "hi_top_fade_hairstyle.safetensors": "Corto",
+    "knotless_braid_hairstyle.safetensors": "Largo",
+    "long_hime_cut_hairstyle.safetensors": "Largo",
+    "long_ponytail_hairstyle.safetensors": "Largo",
+    "pigtail_hairstyle.safetensors": "Largo",
+    "pixie_hairstyle-05.safetensors": "Corto",
+    "short_pigtail_hairstyle05.safetensors": "Corto",
+    "side_buns_hairstyle.safetensors": "Largo",
+    "side_swept_hair-05.safetensors": "Largo",
+    "space_buns_hairstyle.safetensors": "Corto",
+    "updo_hairstyle.safetensors": "Corto",
+    "very_long_hair-10.safetensors": "Largo"
 }
 # Directorio que contiene las imágenes
 directory = 'images'
@@ -61,7 +61,8 @@ for lora_key, lora_value in Loras.items():
         # Datos del cuerpo de la solicitud
         data = {
             'image': base64_image,
-            'lora': lora_key
+            'lora': lora_key,
+            'seed': 22222222
         }
 
         # Convertir el diccionario en formato JSON

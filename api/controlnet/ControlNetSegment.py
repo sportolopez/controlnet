@@ -91,7 +91,7 @@ class ControlNetSegment:
         self.pipe.enable_xformers_memory_efficient_attention()
         self.pipe.enable_model_cpu_offload()
         if(lora):
-            self.pipe.load_lora_weights("C:/Users/Administrator/git/controlnet/loras/", weight_name=lora)
+            self.pipe.load_lora_weights("D:/GIT/controlnet/loras/", weight_name=lora)
         control_image = self.make_inpaint_condition(image, image_segm)
         tiempo_transcurrido = time.time() - inicio
         print(f"****La ejecución de  from_pretrained  tardó {tiempo_transcurrido} segundos")

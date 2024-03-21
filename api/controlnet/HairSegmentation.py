@@ -220,7 +220,7 @@ def add_sufix_filename(ruta_completa, sufijo):
     return nueva_ruta_completa
 
 
-def segment_hair(image, pelo_largo):
+def segment_hair(image, pelo_largo=False):
     image = image.convert("RGB")
 
     #utils.resize_image_if_big(ruta_completa)

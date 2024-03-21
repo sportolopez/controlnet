@@ -1,5 +1,7 @@
 import base64
 import json
+import logging
+import re
 import time
 import traceback
 from io import BytesIO
@@ -84,11 +86,6 @@ def generar():
         seed = None
 
 
-    if 'imagen_mask' in body:
-        imagen_mask = get_image_from_base64(body['imagen_mask'])
-    else:
-        imagen_mask = segment_hair(image)
-
     if 'prompt' in body and body['prompt']:
         prompt = body['prompt']
     else:
@@ -99,14 +96,12 @@ def generar():
     else:
         neg_prompt = neg_prompt_default
 
+    bool_pelo_largo = False
     if lora:
-        key_word = Loras.get(lora,"")
+        bool_pelo_largo = Loras.get(lora, "")
+        key_word = re.sub(r'[^a-zA-Z]', '', lora.split('.')[0])
 
     prompt = color + ", " + prompt + " , " + key_word
-
-
-    inicio = time.time()
-    controlnet = ControlNetSegment()
 
     print("*****Realizando prueba******")
     print("prompt:"+prompt)
@@ -115,6 +110,20 @@ def generar():
     print("Neg_prompt:" + neg_prompt)
     print("max_size:" + str(max_size))
     print("Seed:" + str(seed))
+
+    if 'imagen_mask' in body:
+        imagen_mask = get_image_from_base64(body['imagen_mask'])
+    else:
+        imagen_mask = segment_hair(image,bool_pelo_largo)
+
+
+
+
+
+    inicio = time.time()
+    controlnet = ControlNetSegment()
+
+
     #image = resize_image_if_big_by_size(image,max_size)
     #imagen_mask = resize_image_if_big_by_size(imagen_mask, max_size)
     imagen_gen = controlnet.segment_generation(image=image, image_segm=imagen_mask, prompt=prompt,
@@ -181,6 +190,8 @@ def login():
         return jsonify({'error': str(e)}), 401
 
 def custom_error_handler(exception):
+    logging.basicConfig(level=logging.ERROR)
+
     # Get the exception type and message
     error_type = str(type(exception).__name__)
     error_message = str(exception)
@@ -188,13 +199,15 @@ def custom_error_handler(exception):
     # Get the stack trace
     stack_trace = traceback.format_exc()
 
+    logging.error(f"Error: {error_type} - {error_message}\n{stack_trace}")
+
     # Create a response JSON
     response = {
         "error": "NotFound",
         "detail": error_message,
         "stack_trace": stack_trace
     }
-    return json.dumps(response)
+    return json.dumps(response), 500
 
 
 my_app = connexion.FlaskApp(__name__, specification_dir='./')
