@@ -30,11 +30,10 @@ def hora():
 
 
 def limpiar_cara(imagen_face, image):
-    # Iterar sobre los píxeles de la imagen 1
-    for y in range(imagen_face.shape[0]):
-        for x in range(imagen_face.shape[1]):
-            if imagen_face[y, x] != 0:  # Verificar si el píxel es negro
-                image[y, x] = 0  # Copiar el píxel de la imagen 1 a la imagen 2
+    imagen_face_not = cv2.bitwise_not(imagen_face)
+    image2 = cv2.bitwise_and(image, imagen_face_not)
+    #sin esto no funciona
+    image = image2
 
 
 def ensanchar_borde(imagen, dilatacion):
@@ -184,14 +183,6 @@ def get_hair_segmentation(image):
 
     image = ensanchar_borde(arr_seg, 40)
     limpiar_cara(arr_seg_cara, image)
-    '''
-    pil_seg = Image.fromarray(image)
-
-    nueva_ruta_completa = add_sufix_filename(ruta_completa, "_segm")
-
-    pil_seg.save(nueva_ruta_completa)
-    pil_seg.close()
-    '''
     return image
 
 
@@ -242,6 +233,6 @@ def segment_hair(image, pelo_largo=False):
 
 if __name__ == "__main__":
 
-    segmentacion = segment_hair(Image.open("../../images/20.png"), True)
-    segmentacion.save("../../images/20_segamano_largo.jpg")
+    segmentacion = segment_hair(Image.open("../../images/00.PNG"), True)
+    segmentacion.save("../../images/00_segamano_largo.jpg")
     segmentacion.close()
