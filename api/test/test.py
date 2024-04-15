@@ -12,7 +12,11 @@ headers = {
 
 # Enum para los valores de lora
 Loras = {
-    "bridal_hairstyle-10.safetensors": "Largo",
+    "bridal_hairstyle-10.safetensors": "Largo"
+}
+'''
+Loras = {
+    "bridal_hairstyle-10.safetensors": "Largo" ,
     "curls_hairstyle-10.safetensors": "Largo",
     "dreads_hairstyle.safetensors": "Largo",
     "ponytail_weave_hairstyle.safetensors": "Largo",
@@ -40,7 +44,7 @@ Loras = {
     "space_buns_hairstyle.safetensors": "Corto",
     "updo_hairstyle.safetensors": "Corto",
     "very_long_hair-10.safetensors": "Largo"
-}
+}'''
 # Directorio que contiene las imágenes
 directory = 'images'
 output_directory = 'decoded_images'

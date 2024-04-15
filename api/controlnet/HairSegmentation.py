@@ -1,4 +1,5 @@
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
@@ -22,6 +23,7 @@ model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b
 processorFace = SegformerImageProcessor.from_pretrained("jonathandinu/face-parsing", resume_download=True)
 modelFace = AutoModelForSemanticSegmentation.from_pretrained("jonathandinu/face-parsing", resume_download=True)
 
+print("-------- se instancia HairSegmentation --------")
 
 def hora():
     hora_inicio = datetime.datetime.now()
@@ -48,16 +50,23 @@ def ensanchar_borde(imagen, dilatacion):
 
 
 def get_face_segmentation(image, pelo_largo):
+    inicio = time.time()
+
     inputs = processorFace(images=image, return_tensors="pt")
     outputs = modelFace(**inputs)
     logits = outputs.logits.cpu()
 
+    print(f"************** get_face_segmentation tardó {time.time() - inicio} segundos")
+    inicio = time.time()
     upsampled_logits = nn.functional.interpolate(
         logits,
         size=image.size[::-1],
         mode="bilinear",
         align_corners=False,
     )
+    print(f"************** interpolate tardó {time.time() - inicio} segundos")
+    inicio = time.time()
+
     seg_pelo = upsampled_logits.argmax(dim=1)[0]
     # seg_pelo[seg_pelo != 5] = 0
     mask = (seg_pelo != 1) & (seg_pelo != 2) & (seg_pelo != 4) & (seg_pelo != 5) & (seg_pelo != 6) & (seg_pelo != 7) & (
@@ -81,6 +90,8 @@ def get_face_segmentation(image, pelo_largo):
     imagen_cuello = ''
     imagen_ropa = ''
 
+    print(f"************** mask tardó {time.time() - inicio} segundos")
+    inicio = time.time()
     if pelo_largo:
         image_ensanchada = ensanchar_borde2(arr_seg, 175)
         imagen_cuello = get_image_by_byte(upsampled_logits.argmax(dim=1)[0],17)
@@ -89,12 +100,17 @@ def get_face_segmentation(image, pelo_largo):
         image_ensanchada = ensanchar_borde2(arr_seg, 150)
 
     image_clean = get_a_line_haircut(arr_seg, image_ensanchada, imagen_ceja_d, imagen_ceja_i, lower_point, pelo_largo)
-    '''
-    nueva_ruta_completa = add_sufix_filename(ruta_completa, "_face")
+    print(f"************** get_a_line_haircut tardó {time.time() - inicio} segundos")
 
     pil_seg = Image.fromarray(image_clean)
-    pil_seg.save(nueva_ruta_completa)
-    pil_seg.close()'''
+    pil_seg.save("imagen_clean.jpg")
+    pil_seg.close()
+    pil_seg = Image.fromarray(imagen_cuello)
+    pil_seg.save("imagen_cuello.jpg")
+    pil_seg.close()
+    pil_seg = Image.fromarray(imagen_ropa)
+    pil_seg.save("imagen_ropa.jpg")
+    pil_seg.close()
     return image_clean, imagen_cuello, imagen_ropa, arr_seg
 
 
@@ -162,28 +178,46 @@ def ensanchar_borde2(imagen, dilatacion):
 
 
 def get_hair_segmentation(image):
-    inputs = processor(images=image, return_tensors="pt")
-    outputs = model(**inputs)
-    logits = outputs.logits.cpu()
+    inicioparcial = time.time()
 
+    inputs = processor(images=image, return_tensors="pt")
+    print(
+        f"***********La ejecución de get_hair_segmentation.processor tardó {time.time() - inicioparcial} segundos")
+    inicioparcial = time.time()
+    outputs = model(**inputs)
+    print(
+        f"***********La ejecución de get_hair_segmentation.model tardó {time.time() - inicioparcial} segundos")
+    inicioparcial = time.time()
+    logits = outputs.logits.cpu()
+    print(
+        f"***********La ejecución de get_hair_segmentation.logits tardó {time.time() - inicioparcial} segundos")
+    inicioparcial = time.time()
     upsampled_logits = nn.functional.interpolate(
         logits,
         size=image.size[::-1],
         mode="bilinear",
         align_corners=False,
     )
+    print(
+        f"***********La ejecución de get_hair_segmentation.upsampled_logits tardó {time.time() - inicioparcial} segundos")
+
     seg_cara = upsampled_logits.argmax(dim=1)[0]
     seg_cara[seg_cara != 11] = 0
     arr_seg_cara = seg_cara.cpu().numpy().astype("uint8")
     arr_seg_cara *= 255
 
+
     seg_pelo = upsampled_logits.argmax(dim=1)[0]
     seg_pelo[seg_pelo != 2] = 0
     arr_seg = seg_pelo.cpu().numpy().astype("uint8")
     arr_seg *= 255
-
+    inicioparcial = time.time()
     image = ensanchar_borde(arr_seg, 40)
+    print(f"***********La ejecución de get_hair_segmentation.ensanchar_borde tardó {time.time() - inicioparcial} segundos")
+    inicioparcial = time.time()
     limpiar_cara(arr_seg_cara, image)
+    print(
+        f"***********La ejecución de get_hair_segmentation.limpiar_cara tardó {time.time() - inicioparcial} segundos")
     '''
     pil_seg = Image.fromarray(image)
 
@@ -220,18 +254,32 @@ def add_sufix_filename(ruta_completa, sufijo):
     return nueva_ruta_completa
 
 
+
 def segment_hair(image, pelo_largo=False):
     image = image.convert("RGB")
 
     #utils.resize_image_if_big(ruta_completa)
     inicio = time.time()
-    image_hair = get_hair_segmentation(image)
-    image_face, imagen_cuello, imagen_ropa, face = get_face_segmentation(image, pelo_largo)
-    image_hair = cv2.bitwise_not(image_hair)
-    imagen_unida = cv2.bitwise_and(image_hair, image_face)
-    imagen_unida = cv2.bitwise_not(imagen_unida)
-    if pelo_largo:
-        imagen_unida = extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face)
+    inicioparcial = time.time()
+
+    with ThreadPoolExecutor() as executor:
+
+        future_hair = executor.submit(get_hair_segmentation, image)
+        future_face = executor.submit(get_face_segmentation, image, pelo_largo)
+
+        # Obtener los resultados de ambas funciones
+        image_hair = future_hair.result()
+        image_face, imagen_cuello, imagen_ropa, face = future_face.result()
+
+        # Realizar las operaciones restantes
+        image_hair = cv2.bitwise_not(image_hair)
+        imagen_unida = cv2.bitwise_and(image_hair, image_face)
+        imagen_unida = cv2.bitwise_not(imagen_unida)
+
+        if pelo_largo:
+            inicioparcial = time.time()
+            imagen_unida = extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face)
+            print(f"***********La ejecución de bitwise_not tardó {time.time() - inicioparcial} segundos")
     tiempo_transcurrido = time.time() - inicio
     print(f"******La ejecución de segment_hair tardó {tiempo_transcurrido} segundos")
     return Image.fromarray(imagen_unida)

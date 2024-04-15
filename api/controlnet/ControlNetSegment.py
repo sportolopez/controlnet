@@ -11,7 +11,7 @@ import numpy as np
 class ControlNetSegment:
     # Load pretrained model
 
-
+    controlnetFromPretrained = None
     def __init__(self):
 
         # Check the CPU
@@ -21,10 +21,14 @@ class ControlNetSegment:
         if self.device == 'cpu':
             raise MemoryError('GPU needed for inference in this project')
 
+        self.pipe = StableDiffusionControlNetInpaintPipeline.from_pretrained("SG161222/Realistic_Vision_V5.1_noVAE",
+                                                                             controlnet=self.controlnetFromPretrained,
+                                                                             torch_dtype=torch.float16,
+                                                                             safety_checker=None,
+                                                                             cache_dir='D:\cache',
+                                                                             use_safetensors=True
+                                                                             )
 
-        print("Antes de StableDiffusionControlNetInpaintPipeline.from_pretrained ")
-
-        print("despues de StableDiffusionControlNetInpaintPipeline.from_pretrained ")
 
     def make_inpaint_condition(self,image, image_mask):
         image = np.array(image.convert("RGB")).astype(np.float32) / 255.0
@@ -72,17 +76,18 @@ class ControlNetSegment:
                            seed=None):
 
         inicio = time.time()
-        self.pipe = StableDiffusionControlNetInpaintPipeline.from_pretrained("SG161222/Realistic_Vision_V5.1_noVAE",
-                                                                        controlnet=ControlNetModel.from_pretrained(
-                                                                            "lllyasviel/control_v11p_sd15_inpaint",
-                                                                            torch_dtype=torch.float16,
-                                                                            cache_dir='D:\cache'
-                                                                        ),
-                                                                        torch_dtype=torch.float16,
-                                                                        safety_checker=None,
-                                                                        cache_dir='D:\cache'
-                                                                        )
+        print("Antes de controlnetFromPretrained.from_pretrained ")
 
+        self.controlnetFromPretrained = ControlNetModel.from_pretrained(
+            "lllyasviel/control_v11p_sd15_inpaint",
+            torch_dtype=torch.float16,
+            cache_dir='D:\cache',
+            use_safetensors=True
+        )
+
+        self.pipe.controlnet = self.controlnetFromPretrained
+
+        print("despues de controlnetFromPretrained.from_pretrained: " + str(time.time() - inicio))
         if seed is not None:
             generator = torch.Generator(device="cuda").manual_seed(seed)
         else:
@@ -90,12 +95,14 @@ class ControlNetSegment:
         self.pipe.scheduler = scheduler.from_config(self.pipe.scheduler.config)
         self.pipe.enable_xformers_memory_efficient_attention()
         self.pipe.enable_model_cpu_offload()
+        inicio = time.time()
         if(lora):
             self.pipe.load_lora_weights("D:/GIT/controlnet/loras/", weight_name=lora)
         control_image = self.make_inpaint_condition(image, image_segm)
         tiempo_transcurrido = time.time() - inicio
-        print(f"****La ejecución de  from_pretrained  tardó {tiempo_transcurrido} segundos")
+        print(f"****La carga del lora tardó {tiempo_transcurrido} segundos")
         inicio = time.time()
+
         image = self.pipe(prompt,
                      negative_prompt=neg_prompt,
                      image=image,

@@ -17,6 +17,7 @@ from controlnet.HairSegmentation import segment_hair
 from controlnet.ControlNetSegment import ControlNetSegment
 from controlnet.Loras import Loras
 
+controlnet = ControlNetSegment()
 
 def get_image_from_base64(base64string):
     imagen_bytes = base64.b64decode(base64string)
@@ -121,7 +122,7 @@ def generar():
 
 
     inicio = time.time()
-    controlnet = ControlNetSegment()
+
 
 
     #image = resize_image_if_big_by_size(image,max_size)
