@@ -56,14 +56,12 @@ def get_face_segmentation(image, pelo_largo):
     logits = outputs.logits.cpu()
 
     print(f"************** get_face_segmentation tardó {time.time() - inicio} segundos")
-    inicio = time.time()
     upsampled_logits = nn.functional.interpolate(
         logits,
         size=image.size[::-1],
         mode="bilinear",
         align_corners=False,
     )
-    print(f"************** interpolate tardó {time.time() - inicio} segundos")
     inicio = time.time()
 
     seg_pelo = upsampled_logits.argmax(dim=1)[0]
@@ -210,13 +208,8 @@ def get_hair_segmentation(image):
     seg_pelo[seg_pelo != 2] = 0
     arr_seg = seg_pelo.cpu().numpy().astype("uint8")
     arr_seg *= 255
-    inicioparcial = time.time()
     image = ensanchar_borde(arr_seg, 40)
-    print(f"***********La ejecución de get_hair_segmentation.ensanchar_borde tardó {time.time() - inicioparcial} segundos")
-    inicioparcial = time.time()
     limpiar_cara(arr_seg_cara, image)
-    print(
-        f"***********La ejecución de get_hair_segmentation.limpiar_cara tardó {time.time() - inicioparcial} segundos")
     '''
     pil_seg = Image.fromarray(image)
 
@@ -259,7 +252,6 @@ def segment_hair(image, pelo_largo=False):
 
     #utils.resize_image_if_big(ruta_completa)
     inicio = time.time()
-    inicioparcial = time.time()
 
     with ThreadPoolExecutor() as executor:
 
@@ -276,9 +268,7 @@ def segment_hair(image, pelo_largo=False):
         imagen_unida = cv2.bitwise_not(imagen_unida)
 
         if pelo_largo:
-            inicioparcial = time.time()
             imagen_unida = extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face)
-            print(f"***********La ejecución de bitwise_not tardó {time.time() - inicioparcial} segundos")
     tiempo_transcurrido = time.time() - inicio
     print(f"******La ejecución de segment_hair tardó {tiempo_transcurrido} segundos")
     return Image.fromarray(imagen_unida)

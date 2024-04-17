@@ -117,14 +117,6 @@ def generar():
     else:
         imagen_mask = segment_hair(image,bool_pelo_largo)
 
-
-
-
-
-    inicio = time.time()
-
-
-
     #image = resize_image_if_big_by_size(image,max_size)
     #imagen_mask = resize_image_if_big_by_size(imagen_mask, max_size)
     imagen_gen = controlnet.segment_generation(image=image, image_segm=imagen_mask, prompt=prompt,
@@ -133,9 +125,7 @@ def generar():
     image_bytes = BytesIO()
     imagen_gen.save(image_bytes, format="PNG")  # You can choose a different format if needed
     image_bytes.seek(0)
-    inicio = time.time()
     imagen_base64 = base64.b64encode(image_bytes.getvalue()).decode('utf-8')
-    print(f"****La ejecución de  base64.b64encode  tardó { time.time() - inicio} segundos")
     print(f"****La ejecución de  TOTAL  tardó {time.time() - inicio_total} segundos")
     # En este ejemplo, simplemente devolveré un mensaje de éxito junto con los parámetros.
     return "data:image/png;base64,"+imagen_base64
