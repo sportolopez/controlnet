@@ -1,9 +1,9 @@
 Loras = {
+    "egyptian_bob_hairstyle.safetensors": False,
     "bridal_hairstyle-10.safetensors": True,
     "curls_hairstyle-10.safetensors": True,
     "dreads_hairstyle.safetensors": True,
     "ponytail_weave_hairstyle.safetensors": True,
-    "egyptian_bob_hairstyle.safetensors": False,
     "emo_hairstyle.safetensors": True,
     "long_braid_hairstyle-10.safetensors": True,
     "middle_parting_hairstyle.safetensors": True,

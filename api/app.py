@@ -121,9 +121,12 @@ def generar():
 
     bool_pelo_largo = False
     if lora:
-        bool_pelo_largo = Loras.get(lora, "")
-        key_word = re.sub(r'[^a-zA-Z_]', '', lora.split('.')[0])
+        bool_pelo_largo = Loras[lora]
+        print("Lora",lora)
+        print("bool_pelo_largo",bool_pelo_largo)
 
+        key_word = re.sub(r'[^a-zA-Z_]', '', lora.split('.')[0])
+    print("bool_pelo_largo", bool_pelo_largo)
 
 
     imagen_base64 = body['image']

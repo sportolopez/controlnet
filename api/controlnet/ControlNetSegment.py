@@ -1,6 +1,8 @@
 import os
 import time
 
+from hair_seg_api import add_sufix_filename
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 from diffusers import StableDiffusionControlNetInpaintPipeline, ControlNetModel, DDPMScheduler
 import torch
@@ -86,6 +88,7 @@ class ControlNetSegment:
             cache_dir='D:\cache',
             use_safetensors=False
             )
+
         '''
         self.pipe = StableDiffusionControlNetInpaintPipeline.from_single_file(
             "D:/model/realisticVisionV60B1_v51VAE-inpainting.safetensors",
@@ -130,4 +133,7 @@ class ControlNetSegment:
 
         if save_gen_path is not None:
             image.save(save_gen_path)
+            ruta_segmentation = add_sufix_filename(save_gen_path, "_segm")
+            print("RutaSeg:",ruta_segmentation)
+            image_segm.save(ruta_segmentation)
         return image

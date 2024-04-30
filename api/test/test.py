@@ -1,7 +1,9 @@
+import io
 import os
 import requests
 import json
 import base64
+from PIL import Image, ExifTags
 
 url = 'http://localhost:8081/'
 
@@ -11,16 +13,17 @@ headers = {
 }
 
 # Enum para los valores de lora
+'''
 Loras = {
-    "bridal_hairstyle-10.safetensors": "Largo"
+    "egyptian_bob_hairstyle.safetensors": "Corto"
 }
 '''
 Loras = {
+    "egyptian_bob_hairstyle.safetensors": "Corto",
     "bridal_hairstyle-10.safetensors": "Largo" ,
     "curls_hairstyle-10.safetensors": "Largo",
     "dreads_hairstyle.safetensors": "Largo",
     "ponytail_weave_hairstyle.safetensors": "Largo",
-    "egyptian_bob_hairstyle.safetensors": "Corto",
     "emo_hairstyle.safetensors": "Largo",
     "long_braid_hairstyle-10.safetensors": "Largo",
     "middle_parting_hairstyle.safetensors": "Largo",
@@ -44,29 +47,74 @@ Loras = {
     "space_buns_hairstyle.safetensors": "Corto",
     "updo_hairstyle.safetensors": "Corto",
     "very_long_hair-10.safetensors": "Largo"
-}'''
+}
+
+def add_sufix_filename(ruta_completa, sufijo):
+    carpeta, nombre_archivo = os.path.split(ruta_completa)
+    nombre_base, extension = os.path.splitext(nombre_archivo)
+    nuevo_nombre = f"{nombre_base}{sufijo}{extension}"
+    nueva_ruta_completa = os.path.join(carpeta, nuevo_nombre)
+    return nueva_ruta_completa
+
+
 # Directorio que contiene las imágenes
 directory = 'images'
 output_directory = 'decoded_images'
+
+archivos = os.listdir(directory)
+archivos = [archivo for archivo in archivos if "_segm" not in archivo]
+base64_image = ""
+buffer = io.BytesIO()
 # Iterar sobre cada lora
 for lora_key, lora_value in Loras.items():
     # Iterar sobre cada archivo en el directorio
-    for filename in os.listdir(directory):
-        # Construir la ruta completa del archivo
+    for filename in archivos:
+
         file_path = os.path.join(directory, filename)
-
-        # Leer el contenido del archivo de imagen
         with open(file_path, 'rb') as file:
+            # Abrir la imagen con PIL
             image_content = file.read()
+            base64_image = base64.b64encode(image_content).decode('utf-8')
 
-        # Codificar la imagen en base64
-        base64_image = base64.b64encode(image_content).decode('utf-8')
+            with Image.open(file) as img:
+                # Obtener el ancho y alto de la imagen
+                if hasattr(img, '_getexif') and img._getexif():
+                    for orientation in ExifTags.TAGS.keys():
+                        if ExifTags.TAGS[orientation] == 'Orientation':
+                            break
+                    exif = dict(img._getexif().items())
+
+                    # Rotar la imagen si es necesario
+                    if exif.get(orientation) == 3:
+                        img = img.transpose(Image.ROTATE_180)
+                    elif exif.get(orientation) == 6:
+                        img = img.transpose(Image.ROTATE_270)
+                    elif exif.get(orientation) == 8:
+                        img = img.transpose(Image.ROTATE_90)
+
+                    img.save(buffer, format="PNG")  # Guardar la imagen en un buffer de bytes
+                    base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+                # Convertir la imagen a base64
+
+
+        '''
+        file_path_segm = add_sufix_filename(file_path, "_segm")
+        with open(file_path_segm, 'rb') as file:
+            image_content_segm = file.read()
+        base64_image_segm = base64.b64encode(image_content_segm).decode('utf-8')
+        '''
+
+
 
         # Datos del cuerpo de la solicitud
         data = {
             'image': base64_image,
-            'lora': lora_key,
-            'seed': 22222222
+            #'imagen_mask': base64_image_segm,
+            'lora': lora_key
+            #,'seed': 22222222
+            ,'prompt': '4k, high-res, masterpiece, best quality,((Hasselblad photography)), finely detailed skin, sharp focus, (cinematic lighting), soft lighting, dynamic angle'
+            ,'neg_prompt': '(greyscale:1.2),paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, age spot, glans, shadows, background'
         }
 
         # Convertir el diccionario en formato JSON

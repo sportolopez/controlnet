@@ -98,7 +98,7 @@ def get_face_segmentation(image, pelo_largo):
 
     image_clean = get_a_line_haircut(arr_seg, image_ensanchada, imagen_ceja_d, imagen_ceja_i, lower_point, pelo_largo)
     print(f"************** get_a_line_haircut tardó {time.time() - inicio} segundos")
-
+    '''
     pil_seg = Image.fromarray(image_clean)
     pil_seg.save("imagen_clean.jpg")
     pil_seg.close()
@@ -108,6 +108,7 @@ def get_face_segmentation(image, pelo_largo):
     pil_seg = Image.fromarray(imagen_ropa)
     pil_seg.save("imagen_ropa.jpg")
     pil_seg.close()
+    '''
     return image_clean, imagen_cuello, imagen_ropa, arr_seg
 
 
@@ -248,6 +249,7 @@ def add_sufix_filename(ruta_completa, sufijo):
 
 
 def segment_hair(image, pelo_largo=False):
+    print("Pelo Largo:", pelo_largo)
     image = image.convert("RGB")
 
     #utils.resize_image_if_big(ruta_completa)
