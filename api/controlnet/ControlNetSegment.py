@@ -21,13 +21,7 @@ class ControlNetSegment:
         if self.device == 'cpu':
             raise MemoryError('GPU needed for inference in this project')
 
-        self.pipe = StableDiffusionControlNetInpaintPipeline.from_pretrained("SG161222/Realistic_Vision_V5.1_noVAE",
-                                                                             controlnet=self.controlnetFromPretrained,
-                                                                             torch_dtype=torch.float16,
-                                                                             safety_checker=None,
-                                                                             cache_dir='D:\cache',
-                                                                             use_safetensors=True
-                                                                             )
+
 
 
     def make_inpaint_condition(self,image, image_mask):
@@ -85,19 +79,38 @@ class ControlNetSegment:
             use_safetensors=True
         )
 
+        self.pipe = StableDiffusionControlNetInpaintPipeline.from_pretrained("d:/model/realisticVisionV51_v51VAE-inpainting",
+            controlnet=self.controlnetFromPretrained,
+            torch_dtype=torch.float16,
+            safety_checker=None,
+            cache_dir='D:\cache',
+            use_safetensors=False
+            )
+        '''
+        self.pipe = StableDiffusionControlNetInpaintPipeline.from_single_file(
+            "D:/model/realisticVisionV60B1_v51VAE-inpainting.safetensors",
+            controlnet=self.controlnetFromPretrained,
+            torch_dtype=torch.float16,
+            safety_checker=None,
+            cache_dir='D:\cache',
+            use_safetensors=True
+            )
+        '''
         self.pipe.controlnet = self.controlnetFromPretrained
 
         print("despues de controlnetFromPretrained.from_pretrained: " + str(time.time() - inicio))
         if seed is not None:
             generator = torch.Generator(device="cuda").manual_seed(seed)
         else:
-            generator = torch.Generator(device="cuda")
+            generator = None
         self.pipe.scheduler = scheduler.from_config(self.pipe.scheduler.config)
         self.pipe.enable_xformers_memory_efficient_attention()
         self.pipe.enable_model_cpu_offload()
         inicio = time.time()
+
         if(lora):
             self.pipe.load_lora_weights("D:/GIT/controlnet/loras/", weight_name=lora)
+
         control_image = self.make_inpaint_condition(image, image_segm)
         tiempo_transcurrido = time.time() - inicio
         print(f"****La carga del lora tardó {tiempo_transcurrido} segundos")
