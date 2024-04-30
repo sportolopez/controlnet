@@ -211,18 +211,10 @@ def get_hair_segmentation(image):
     arr_seg *= 255
     image = ensanchar_borde(arr_seg, 40)
     limpiar_cara(arr_seg_cara, image)
-    '''
-    pil_seg = Image.fromarray(image)
-
-    nueva_ruta_completa = add_sufix_filename(ruta_completa, "_segm")
-
-    pil_seg.save(nueva_ruta_completa)
-    pil_seg.close()
-    '''
-    return image
+    return image, arr_seg
 
 
-def extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face):
+def extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face, hair):
     coordenadas = np.argwhere(imagen_unida == 255)
 
     objeto_y_mas_alto = max(coordenadas, key=lambda item: item[1])
@@ -234,7 +226,9 @@ def extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face):
     # image[lower_point[1]:altura_imagen, :] = 255
     mascara_pepito = (imagen_unida != 0)
     mascara_face = (face == 255)
-    image = np.where(mascara_pepito & imagen_ropa & imagen_cuello & mascara_face, 255, 0)
+    mascara_hair = (hair != 0)
+    image = np.where((mascara_pepito & imagen_ropa & imagen_cuello & mascara_face) | mascara_hair, 255, 0)
+
     image = image.astype(np.uint8)
     return image
 
@@ -257,7 +251,7 @@ def segment_hair(image, pelo_largo=False):
 
     with ThreadPoolExecutor() as executor:
 
-        future_hair = executor.submit(get_hair_segmentation, image)
+        future_hair, hair = executor.submit(get_hair_segmentation, image)
         future_face = executor.submit(get_face_segmentation, image, pelo_largo)
 
         # Obtener los resultados de ambas funciones
@@ -270,7 +264,7 @@ def segment_hair(image, pelo_largo=False):
         imagen_unida = cv2.bitwise_not(imagen_unida)
 
         if pelo_largo:
-            imagen_unida = extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face)
+            imagen_unida = extender_mascara(imagen_unida, imagen_ropa, imagen_cuello, face, hair)
     tiempo_transcurrido = time.time() - inicio
     print(f"******La ejecución de segment_hair tardó {tiempo_transcurrido} segundos")
     return Image.fromarray(imagen_unida)
@@ -282,5 +276,5 @@ def segment_hair(image, pelo_largo=False):
 if __name__ == "__main__":
 
     segmentacion = segment_hair(Image.open("../../images/00.PNG"), True)
-    segmentacion.save("../../images/00_segamano_largo.jpg")
+    segmentacion.save("../../images/00_segamano_largo2.jpg")
     segmentacion.close()
