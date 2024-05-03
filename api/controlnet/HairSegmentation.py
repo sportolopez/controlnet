@@ -251,11 +251,11 @@ def segment_hair(image, pelo_largo=False):
 
     with ThreadPoolExecutor() as executor:
 
-        future_hair, hair = executor.submit(get_hair_segmentation, image)
+        future_hair = executor.submit(get_hair_segmentation, image)
         future_face = executor.submit(get_face_segmentation, image, pelo_largo)
 
         # Obtener los resultados de ambas funciones
-        image_hair = future_hair.result()
+        image_hair, hair = future_hair.result()
         image_face, imagen_cuello, imagen_ropa, face = future_face.result()
 
         # Realizar las operaciones restantes

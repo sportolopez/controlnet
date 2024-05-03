@@ -49,15 +49,15 @@ def get_segmentacion(imagen, bool_pelo_largo):
 
     # Verifica si el hash de la imagen ya ha sido procesado previamente
 
-    if hash_imagen in hashes_imagenes:
-        return hashes_imagenes[hash_imagen]
+    hash_completo = hash_imagen + str(bool_pelo_largo)
+    if hash_completo in hashes_imagenes:
+        return hashes_imagenes[hash_completo]
 
     # Si el hash de la imagen no ha sido procesado previamente, procesa la imagen
-
     imagen_segmentada = segment_hair(imagen, bool_pelo_largo)
 
-    # Guarda el hash de la imagen junto con la imagen segmentada
-    hashes_imagenes[hash_imagen] = imagen_segmentada
+    # Guarda el hash de la imagen junto con el valor de bool_pelo_largo y la imagen segmentada
+    hashes_imagenes[hash_completo] = imagen_segmentada
 
     return imagen_segmentada
 
@@ -119,15 +119,12 @@ def generar():
     else:
         lora = None
 
-    bool_pelo_largo = False
+    bool_pelo_largo = None
     if lora:
         bool_pelo_largo = Loras[lora]
-        print("Lora",lora)
-        print("bool_pelo_largo",bool_pelo_largo)
-
         key_word = re.sub(r'[^a-zA-Z_]', '', lora.split('.')[0])
-    print("bool_pelo_largo", bool_pelo_largo)
-
+    print("Lora",lora)
+    print("bool_pelo_largo",bool_pelo_largo)
 
     imagen_base64 = body['image']
     if(imagen_base64.startswith('data:image/')):
@@ -188,7 +185,7 @@ def generar():
     # image = resize_image_if_big_by_size(image,max_size)
     # imagen_mask = resize_image_if_big_by_size(imagen_mask, max_size)
     imagen_gen = controlnet.segment_generation(image=image, image_segm=imagen_mask, prompt=prompt,
-                                               neg_prompt=neg_prompt, seed=seed, lora=lora)
+                                               neg_prompt=neg_prompt, seed=seed, lora=lora,save_gen_path="./server_imagenes")
 
     image_bytes = BytesIO()
     imagen_gen.save(image_bytes, format="PNG")  # You can choose a different format if needed

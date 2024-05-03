@@ -132,8 +132,9 @@ class ControlNetSegment:
         print(f"****La ejecución de  self.pipe  tardó {tiempo_transcurrido} segundos")
 
         if save_gen_path is not None:
-            image.save(save_gen_path)
-            ruta_segmentation = add_sufix_filename(save_gen_path, "_segm")
+            filenme = save_gen_path +"/"+ lora + ".png"
+            image.save(filenme)
+            ruta_segmentation = add_sufix_filename(filenme, "_segm")
             print("RutaSeg:",ruta_segmentation)
             image_segm.save(ruta_segmentation)
         return image

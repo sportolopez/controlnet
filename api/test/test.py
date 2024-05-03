@@ -15,7 +15,8 @@ headers = {
 # Enum para los valores de lora
 '''
 Loras = {
-    "egyptian_bob_hairstyle.safetensors": "Corto"
+    "egyptian_bob_hairstyle.safetensors",
+    "bridal_hairstyle-10.safetensors"
 }
 '''
 Loras = {
@@ -66,7 +67,7 @@ archivos = [archivo for archivo in archivos if "_segm" not in archivo]
 base64_image = ""
 buffer = io.BytesIO()
 # Iterar sobre cada lora
-for lora_key, lora_value in Loras.items():
+for lora_key in Loras:
     # Iterar sobre cada archivo en el directorio
     for filename in archivos:
 
