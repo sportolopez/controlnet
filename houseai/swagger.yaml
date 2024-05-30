@@ -1,0 +1,92 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "API de Ejemplo"
+  description: "Descripción de la API de Ejemplo."
+
+schemes:
+  - "http"
+  - "https"
+
+paths:
+  /login:
+    get:
+      operationId: "app.login"
+      responses:
+        200:
+          description: Token válido.
+        401:
+          description: Token inválido.
+  /generar:
+    post:
+      operationId: "app.generar"
+      consumes:
+        - "application/json"  # Modified content type to accept JSON
+      summary: "Generar algo basado en la imagen"
+      description: "Genera algo utilizando la imagen base64"
+      parameters:
+        - name: "requestBody"
+          in: "body"
+          description: "Objeto JSON con la información requerida"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              token:
+                type: "string"
+                description: "Id obtenido en el login"
+              generation_id:
+                type: "string"
+                description: "generation_id obtenido"
+              image:
+                type: "string"
+                description: "Imagen en base64"
+              theme:
+                type: "string"
+                description: "MODERN, SCANDINAVIAN, LUXURIOUS, FARMHOUSE_CHIC, MODERN_POP,KIDS_ROOM"
+              room_type:
+                type: "string"
+                description: "LIVING_ROOM, BEDROOM, EMPTY, KITCHEN, DINING_ROOM, DINING_LIVING_ROOM, HOME_OFFICE, SHOWEROOM, BATHROOM, VERANDA, WC"
+      responses:
+        200:
+          description: "Respuesta exitosa."
+          schema:
+            type: "object"
+            properties:
+              generation_id:
+                type: "string"
+                description: "Identificador único de la generación."
+
+  /consultar:
+    post:
+      operationId: "app.consultar"
+      consumes:
+        - "application/json"  # Modified content type to accept JSON
+      summary: "Generar algo basado en la imagen"
+      description: "Genera algo utilizando la imagen base64"
+      parameters:
+        - name: "requestBody"
+          in: "body"
+          description: "Objeto JSON con la información requerida"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              generation_id:
+                type: "string"
+                description: "uuid de la imagen a consultar"
+              token:
+                type: "string"
+                description: "token obtenido en el login"
+      responses:
+        200:
+          description: "Respuesta exitosa."
+          schema:
+            type: "object"
+            properties:
+              image_url:
+                type: "string"
+                description: "Identificador único de la generación."
+              remaining_photos:
+                type: "integer"
+                description: "Número de fotos restantes."
